@@ -29,7 +29,7 @@ pub struct CamState {
 
 impl Default for CamState {
     fn default() -> Self {
-        CamState { yaw: 0.0, yaw_target: 0.0, dist: 17.0, dist_target: 17.0, focus: Vec3::ZERO, shake: 0.0, pitch: 0.95 }
+        CamState { yaw: 0.0, yaw_target: 0.0, dist: 19.0, dist_target: 19.0, focus: Vec3::ZERO, shake: 0.0, pitch: 1.08 }
     }
 }
 
@@ -154,14 +154,19 @@ pub fn cutaway(game: Res<Game>, map: Option<Res<CityMap>>, st: Res<CamState>, mu
             break;
         }
         let mut cut = inside == Some(i);
-        if !cut {
-            // sample points between player and camera direction
-            for k in 1..8 {
-                let s = p + cam_dir * (k as f32 * 0.9);
-                let (x, y) = to_tile(s);
-                if b.contains_tile(x, y) {
-                    cut = true;
-                    break;
+        if !cut && i < vis.buildings.len() {
+            // anything tall between Elias and the camera, in a strip a few tiles wide
+            let h = vis.buildings[i].height + 2.5;
+            let reach = (h * 1.1).clamp(6.0, 22.0);
+            let side = Vec2::new(cam_dir.y, -cam_dir.x);
+            'outer: for k in 0..((reach / 0.8) as i32) {
+                for w in [-2.2f32, -1.1, 0.0, 1.1, 2.2] {
+                    let s = p + cam_dir * (k as f32 * 0.8 + 0.4) + side * w * (0.4 + k as f32 * 0.06);
+                    let (x, y) = to_tile(s);
+                    if b.contains_tile(x, y) {
+                        cut = true;
+                        break 'outer;
+                    }
                 }
             }
         }

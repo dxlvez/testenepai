@@ -125,7 +125,7 @@ pub fn find_target(
             AState::Carried => {}
             _ => {
                 let name = if p.elias.met || p.case_role.is_some() { p.name() } else { p.job.label(p.female).to_string() };
-                consider(score(a.pos), Target::Npc(i), format!("[{}] Conversar com {}", e, name));
+                consider(score(a.pos) - 0.4, Target::Npc(i), format!("[{}] Conversar com {}", e, name));
             }
         }
     }
@@ -166,6 +166,7 @@ pub fn find_target(
             consider(score(car.pos) + 0.3, Target::Car(car.id), format!("[{}] {}", e, label));
         }
     }
+    let crime_b = current(&game, &db).and_then(|(_, pi)| game.cases[pi].clue_pos.first().copied().flatten()).and_then(|(x, y)| m.building_at(Vec2::new(x, y)));
     // tiles around: doors, windows, containers, beds
     let (tx, ty) = to_tile(pp);
     for yy in ty - 1..=ty + 1 {
@@ -175,14 +176,14 @@ pub fn find_target(
             match m.get(xx, yy) {
                 Tile::Door => {
                     if let Some(b) = m.building_at_tile(xx, yy) {
-                        if !can_enter(m, &game, b, &it, (xx, yy), &sim) {
-                            consider(dist, Target::Door(b, (xx, yy)), format!("[{}] Porta trancada — {}", e, if m.buildings[b].name.is_empty() { m.buildings[b].kind.label().to_string() } else { m.buildings[b].name.clone() }));
+                        if Some(b) != crime_b && !can_enter(m, &game, b, &it, (xx, yy), &sim) {
+                            consider(dist + 0.7, Target::Door(b, (xx, yy)), format!("[{}] Porta trancada — {}", e, if m.buildings[b].name.is_empty() { m.buildings[b].kind.label().to_string() } else { m.buildings[b].name.clone() }));
                         }
                     }
                 }
                 Tile::Window => {
                     if !it.opened.contains(&(xx, yy)) {
-                        consider(dist + 0.2, Target::Window((xx, yy)), format!("[{}] Janela", e));
+                        consider(dist + 0.9, Target::Window((xx, yy)), format!("[{}] Janela", e));
                     }
                 }
                 Tile::Water if rt.carrying.is_some() => consider(dist, Target::Water, format!("[{}] Jogar o corpo na água", key(&binds, Action::Hide))),

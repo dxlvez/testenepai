@@ -513,11 +513,17 @@ impl Map {
 
     /// Circle vs tile collision; returns the corrected position.
     pub fn collide(&self, pos: Vec2, r: f32) -> Vec2 {
+        self.collide_with(pos, r, |x, y| self.blocked(x, y))
+    }
+
+    /// Collision with a custom notion of what is solid (Elias: locked doors
+    /// are walls, opened windows are holes).
+    pub fn collide_with(&self, pos: Vec2, r: f32, blocked: impl Fn(i32, i32) -> bool) -> Vec2 {
         let mut p = pos;
         let (tx, ty) = to_tile(p);
         for yy in ty - 1..=ty + 1 {
             for xx in tx - 1..=tx + 1 {
-                if !self.blocked(xx, yy) {
+                if !blocked(xx, yy) {
                     continue;
                 }
                 let rx = xx as f32 * TS;

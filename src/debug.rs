@@ -6,7 +6,7 @@ use crate::keys::Script;
 use crate::state::Game;
 use bevy::prelude::*;
 
-pub fn debug_cmds(mut s: ResMut<Script>, mut game: ResMut<Game>, mut cam: ResMut<CamState>, map: Option<Res<crate::world::CityMap>>) {
+pub fn debug_cmds(mut s: ResMut<Script>, mut game: ResMut<Game>, mut cam: ResMut<CamState>, map: Option<Res<crate::world::CityMap>>, sim: Res<crate::sim::agents::Sim>) {
     let cmds: Vec<String> = s.cmds.drain(..).collect();
     for c in cmds {
         let (k, v) = c.split_once(':').unwrap_or((c.as_str(), ""));
@@ -68,6 +68,45 @@ pub fn debug_cmds(mut s: ResMut<Script>, mut game: ResMut<Game>, mut cam: ResMut
             "money" => {
                 if let Ok(z) = v.parse::<i32>() {
                     game.player.money = z;
+                }
+            }
+            "tpclue" => {
+                let i: usize = v.parse().unwrap_or(0);
+                let pos = game.cases.iter().find(|c| c.id == game.case_idx as u8).and_then(|c| c.clue_pos.get(i).copied().flatten());
+                if let (Some((x, y)), Some(m)) = (pos, &map) {
+                    game.player.pos = m.0.nearest_open(Vec2::new(x + 0.9, y));
+                    cam.focus = Vec3::new(x, 0.8, y);
+                }
+            }
+            "tpcast" => {
+                let i: usize = v.parse().unwrap_or(0);
+                let pid = game.cases.iter().find(|c| c.id == game.case_idx as u8).and_then(|c| c.cast.get(i).copied());
+                if let Some(a) = pid.and_then(|p| sim.agent(p)) {
+                    game.player.pos = map.as_ref().map(|m| m.0.nearest_open(a.pos + Vec2::new(0.7, 0.0))).unwrap_or(a.pos);
+                    cam.focus = Vec3::new(a.pos.x, 0.8, a.pos.y);
+                }
+            }
+            "give" => {
+                use crate::items::*;
+                let it = match v {
+                    "revolver" => Some(Item::Weapon(Weapon::Revolver)),
+                    "knife" => Some(Item::Weapon(Weapon::Knife)),
+                    "ammo" => Some(Item::Ammo(24)),
+                    "lockpick" => Some(Item::Tool(Tool::Lockpick)),
+                    "chloroform" => Some(Item::Drug(Drug::Chloroform)),
+                    "jewel" => Some(Item::Gift(Gift::Jewel)),
+                    _ => None,
+                };
+                if let Some(it) = it {
+                    match it {
+                        Item::Ammo(n) => game.player.add_ammo(n),
+                        other => game.player.inv.push(other),
+                    }
+                }
+            }
+            "skill" => {
+                for sk in crate::state::Skill::ALL {
+                    game.player.skills.insert(sk, v.parse().unwrap_or(5));
                 }
             }
             "flag" => {

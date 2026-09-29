@@ -90,6 +90,7 @@ pub fn player_move(
     cursor: Res<Cursor>,
     cam: Res<crate::camera::CamState>,
     ui: Res<crate::ui::UiState>,
+    (it, sim, db): (Res<crate::interact::Interact>, Res<crate::sim::agents::Sim>, Res<crate::cases::run::CaseDb>),
 ) {
     let Some(map) = map else { return };
     let m = &map.0;
@@ -121,12 +122,12 @@ pub fn player_move(
     let yaw = cam.yaw;
     let (s, c) = yaw.sin_cos();
     let dir = Vec2::new(dir.x * c + dir.y * s, -dir.x * s + dir.y * c);
-    let p = &mut game.player;
+    let crime_b = crate::cases::run::current(&game, &db).and_then(|(_, pi)| game.cases[pi].clue_pos.first().copied().flatten()).and_then(|(x, y)| m.building_at(Vec2::new(x, y)));
     let carrying = rt.carrying.is_some();
-    let running = act.held(Action::Run) && p.stamina > 0.05 && !carrying && !rt.aiming;
+    let running = act.held(Action::Run) && game.player.stamina > 0.05 && !carrying && !rt.aiming;
     let sneaking = act.held(Action::Walk);
     let mut speed: f32 = if running {
-        4.6 + if p.stim > 0.0 { 1.2 } else { 0.0 }
+        4.6 + if game.player.stim > 0.0 { 1.2 } else { 0.0 }
     } else if sneaking {
         1.0
     } else {
@@ -135,7 +136,7 @@ pub fn player_move(
     if carrying {
         speed *= if rt.dragging { 0.45 } else { 0.6 };
     }
-    if p.health < 35.0 {
+    if game.player.health < 35.0 {
         speed *= 0.75;
     }
     if rt.aiming {
@@ -145,18 +146,32 @@ pub fn player_move(
     rt.sneaking = sneaking && dir != Vec2::ZERO;
     if dir != Vec2::ZERO {
         let d = dir.normalize();
-        let np = p.pos + d * speed * dt;
-        p.pos = m.collide(np, 0.26);
+        let np = game.player.pos + d * speed * dt;
+        let gref: &Game = &game;
+        let blocked = |x: i32, y: i32| -> bool {
+            match m.get(x, y) {
+                crate::city::map::Tile::Window => !it.opened.contains(&(x, y)),
+                crate::city::map::Tile::Door => match m.building_at_tile(x, y) {
+                    Some(b) => Some(b) != crime_b && !crate::interact::can_enter(m, gref, b, &it, (x, y), &sim),
+                    None => false,
+                },
+                _ => m.blocked(x, y),
+            }
+        };
+        let newp = m.collide_with(np, 0.26, blocked);
+        game.player.pos = newp;
         if !rt.aiming {
             rt.facing = d.y.atan2(d.x);
         }
         rt.moving = speed;
         if running {
-            p.stamina = (p.stamina - dt * if p.stim > 0.0 { 0.04 } else { 0.11 }).max(0.0);
+            let st = game.player.stim;
+            game.player.stamina = (game.player.stamina - dt * if st > 0.0 { 0.04 } else { 0.11 }).max(0.0);
         }
     } else {
         rt.moving = 0.0;
     }
+    let p = &mut game.player;
     if !running {
         p.stamina = (p.stamina + dt * 0.08).min(1.0);
     }

@@ -316,6 +316,8 @@ impl El {
 pub struct UiBtn {
     pub id: String,
     pub active: bool,
+    pub bg: Color,
+    pub border: Option<Color>,
 }
 
 #[derive(Component)]
@@ -383,8 +385,8 @@ pub fn spawn_el(p: &mut ChildSpawnerCommands, el: &El, fonts: &UiFonts) {
             });
         }
         El::Btn { id, sty, kids, active } => {
-            let mut e = p.spawn((node_from(sty, FlexDirection::Row), Button, UiBtn { id: id.clone(), active: *active }));
             let bg = if *active { Some(Color::srgba(0.3, 0.04, 0.07, 0.95)) } else { sty.bg };
+            let mut e = p.spawn((node_from(sty, FlexDirection::Row), Button, UiBtn { id: id.clone(), active: *active, bg: bg.unwrap_or(Color::NONE), border: sty.border }));
             e.insert(BackgroundColor(bg.unwrap_or(Color::NONE)));
             if let Some(b) = sty.border {
                 e.insert(BorderColor(if *active { RED } else { b }));
@@ -411,7 +413,7 @@ pub fn button_system(
                 sfx.write(crate::audio::Sfx::Click);
             }
             Interaction::Hovered => {
-                bg.0 = Color::srgba(0.28, 0.05, 0.08, 0.95);
+                bg.0 = if b.bg.alpha() > 0.9 && (b.id.starts_with("clue:") || b.id.starts_with("person:")) { Color::srgb(0.95, 0.9, 0.8) } else { Color::srgba(0.28, 0.05, 0.08, 0.95) };
                 if let Some(mut bc) = border {
                     bc.0 = RED;
                 }
@@ -421,9 +423,9 @@ pub fn button_system(
                 ui.hovered = Some(b.id.clone());
             }
             Interaction::None => {
-                bg.0 = if b.active { Color::srgba(0.3, 0.04, 0.07, 0.95) } else if b.id.starts_with("opt") || b.id.starts_with("o:") { Color::NONE } else { Color::srgba(0.08, 0.06, 0.09, 0.95) };
+                bg.0 = b.bg;
                 if let Some(mut bc) = border {
-                    bc.0 = if b.active { RED } else { FAINT };
+                    bc.0 = if b.active { RED } else { b.border.unwrap_or(FAINT) };
                 }
             }
         }
