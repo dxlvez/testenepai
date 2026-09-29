@@ -6,9 +6,11 @@ saltar entre linhas do tempo: 30 casos, 12 cidades, de Nova Orleans em 1920 a No
 
 ## Como jogar (Windows)
 
-1. Abra `dist/RedThread.exe` (um único arquivo — não precisa instalar nada).
-2. Os saves ficam na pasta `arquivos_de_caso`, criada ao lado do `.exe`.
-3. As teclas podem ser trocadas em **Esc → Ajustes → Controles**.
+1. Baixe a pasta `dist/` inteira e dê dois cliques em `JUNTAR.bat`: ele junta as 4 partes
+   (`RedThread.exe.part1` a `part4`, o GitHub limita arquivos a 100 MB) num único `RedThread.exe`.
+2. Abra `RedThread.exe` — não precisa instalar nada. Placa de vídeo com suporte a DirectX 12 ou Vulkan recomendada.
+3. Os saves ficam na pasta `arquivos_de_caso`, criada ao lado do `.exe`.
+4. As teclas podem ser trocadas em **Esc → Ajustes → Controles**.
 
 ## Controles padrão
 
