@@ -82,9 +82,15 @@ pub fn apply_quality(mut c: Commands, settings: Res<crate::keys::Settings>, q: Q
     *last = Some(settings.quality);
     if settings.quality >= 1 {
         // soft contact shadows in corners and under objects + clean edges
-        c.entity(e).insert((Msaa::Off, Smaa::default(), ScreenSpaceAmbientOcclusion { quality_level: ScreenSpaceAmbientOcclusionQualityLevel::Medium, constant_object_thickness: 0.3 }));
+        c.entity(e).insert((
+            Msaa::Off,
+            Smaa::default(),
+            ScreenSpaceAmbientOcclusion { quality_level: ScreenSpaceAmbientOcclusionQualityLevel::Medium, constant_object_thickness: 0.3 },
+            // light scattering in the air: lamp cones in the night mist, sun rays by day
+            bevy::pbr::VolumetricFog { ambient_intensity: 0.0, step_count: 40, jitter: 0.5, ..default() },
+        ));
     } else {
-        c.entity(e).remove::<(Smaa, ScreenSpaceAmbientOcclusion)>().insert(Msaa::Sample4);
+        c.entity(e).remove::<(Smaa, ScreenSpaceAmbientOcclusion, bevy::pbr::VolumetricFog)>().insert(Msaa::Sample4);
     }
 }
 

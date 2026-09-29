@@ -106,7 +106,7 @@ pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex, real: &super::t
         fabric: base(mats, &tex.fabric, 0.95, 0.15),
         metal: mats.add(StandardMaterial { base_color: Color::WHITE, metallic: 0.8, perceptual_roughness: 0.35, cull_mode: None, ..default() }),
         glow: emissive(mats, LinearRgba::rgb(6.0, 4.2, 2.4)),
-        glass_lit: emissive(mats, LinearRgba::rgb(2.6, 1.7, 0.8)),
+        glass_lit: emissive(mats, LinearRgba::rgb(1.1, 0.72, 0.36)),
         glass_dark: mats.add(StandardMaterial { base_color: Color::srgb(0.05, 0.06, 0.09), perceptual_roughness: 0.05, reflectance: 0.8, cull_mode: None, ..default() }),
         water: mats.add(StandardMaterial { base_color: Color::srgb(0.02, 0.03, 0.05), perceptual_roughness: 0.04, reflectance: 0.9, cull_mode: None, ..default() }),
         puddle: mats.add(StandardMaterial {

@@ -371,6 +371,23 @@ pub fn update_bubbles(
         .collect();
     speakers.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     let show = matches!(ui.mode, Mode::None);
+    // screen positions first, then push overlapping bubbles apart (upwards)
+    let k = scale.0.max(0.01);
+    let mut placed: Vec<(usize, Vec2)> = Vec::new();
+    for (slot, (_, ai)) in speakers.iter().enumerate().take(8) {
+        let a = &sim.agents[*ai];
+        if let Ok(sp) = cam.world_to_viewport(gt, Vec3::new(a.pos.x, 2.25, a.pos.y)) {
+            let mut p = Vec2::new(sp.x / k - 60.0, sp.y / k - 30.0);
+            for _ in 0..6 {
+                let hit = placed.iter().any(|(_, q)| (q.x - p.x).abs() < 190.0 && (q.y - p.y).abs() < 36.0);
+                if !hit {
+                    break;
+                }
+                p.y -= 38.0;
+            }
+            placed.push((slot, p));
+        }
+    }
     for (b, mut node, mut v, children) in q.iter_mut() {
         let Some((_, ai)) = speakers.get(b.0) else {
             *v = Visibility::Hidden;
@@ -381,15 +398,13 @@ pub fn update_bubbles(
             continue;
         }
         let a = &sim.agents[*ai];
-        let world = Vec3::new(a.pos.x, 2.25, a.pos.y);
-        let Ok(sp) = cam.world_to_viewport(gt, world) else {
+        let Some((_, pos)) = placed.iter().find(|(sl, _)| *sl == b.0) else {
             *v = Visibility::Hidden;
             continue;
         };
         *v = Visibility::Inherited;
-        let k = scale.0.max(0.01);
-        node.left = Val::Px(sp.x / k - 60.0);
-        node.top = Val::Px(sp.y / k - 30.0);
+        node.left = Val::Px(pos.x);
+        node.top = Val::Px(pos.y);
         if let Some(&ch) = children.first() {
             if let Ok(mut t) = texts.get_mut(ch) {
                 let s = &a.bubble.as_ref().unwrap().0;

@@ -900,7 +900,12 @@ impl<'a> Ctx<'a> {
                         self.spot(b, SpotKind::Work, xx, back);
                     }
                 }
-                self.scatter(PKind::Shelf, ix, back, iw, 1, 2, 1, b);
+                // back bar with bottles along the wall behind the counter
+                for xx in (ix..ix + iw - 1).step_by(2) {
+                    if let Some(p) = self.put(PKind::BottleShelf, xx, back, 2, 1, b) {
+                        self.m.props[p].rot = if facing_up { 0 } else { 2 };
+                    }
+                }
                 let sy = if facing_up { cy - 1 } else { cy + 1 };
                 for xx in ix + 1..ix + 1 + cw {
                     if xx % 2 == 0 && self.put(PKind::Stool, xx, sy, 1, 1, b).is_some() {
@@ -924,6 +929,36 @@ impl<'a> Ctx<'a> {
                         }
                     }
                 }
+                // period details
+                let yr = self.year;
+                if bl.kind == BKind::Bar {
+                    if yr >= 1950 {
+                        if let Some(t) = self.scatter(PKind::PoolTable, ix, iy, iw, ih, 2, 1, b) {
+                            let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
+                            self.spot(b, SpotKind::Stand, tx, ty + 1);
+                        }
+                    } else if self.rng.chance(0.6) {
+                        if let Some(p) = self.scatter(PKind::Piano, ix, iy, iw, ih, 2, 1, b) {
+                            let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                            let sy2 = if self.free(px, py + 1) { py + 1 } else { py - 1 };
+                            self.spot(b, SpotKind::Stage, px, sy2);
+                        }
+                    }
+                }
+                if matches!(bl.kind, BKind::Bar | BKind::Restaurant) && yr >= 1940 && self.rng.chance(0.7) {
+                    self.scatter(PKind::Jukebox, ix, iy, iw, ih, 1, 1, b);
+                }
+                if matches!(bl.kind, BKind::Club | BKind::Cabaret) {
+                    if let Some(st) = self.place_wall(PKind::Stage, ix, iy, iw, ih, 3, 2, b) {
+                        let (sx, sy3) = (self.m.props[st].x, self.m.props[st].y);
+                        self.spot(b, SpotKind::Stage, sx + 1, sy3 + 1);
+                        if yr >= 1925 {
+                            self.put(PKind::DrumKit, sx + 2, sy3, 1, 1, b);
+                        }
+                    }
+                }
+                self.scatter(PKind::CoatRack, ix, iy, iw, ih, 1, 1, b);
+                self.scatter(PKind::Plant, ix, iy, iw, ih, 1, 1, b);
                 self.spot(b, SpotKind::Work, ix + iw - 1, iy + ih / 2);
             }
             BKind::Church => {
@@ -957,6 +992,10 @@ impl<'a> Ctx<'a> {
                 self.put(PKind::CellBars, cx0, back, 4, 1, b);
                 self.put(PKind::Board, ix, back, 2, 1, b);
                 self.put(PKind::Shelf, ix + 3, back, 2, 1, b);
+                for _ in 0..3 {
+                    self.scatter(PKind::FilingCabinet, ix, iy, iw, ih, 1, 1, b);
+                }
+                self.scatter(PKind::CoatRack, ix, iy, iw, ih, 1, 1, b);
                 self.spot(b, SpotKind::Guard, ix + iw - 2, iy + ih / 2);
             }
             BKind::Hospital => {
@@ -993,8 +1032,20 @@ impl<'a> Ctx<'a> {
                         x += 3;
                     }
                 }
+                // reception: key board behind the desk; lobby with rug, armchairs, lamps; stairs up
+                let kr_y = if facing_up { front + 3 } else { front - 3 };
+                if let Some(k) = self.put(PKind::KeyRack, ix + 1, kr_y, 3, 1, b) {
+                    self.m.props[k].rot = if facing_up { 0 } else { 2 };
+                }
                 self.scatter(PKind::Sofa, ix, iy, iw, ih, 2, 1, b);
+                self.scatter(PKind::Armchair, ix, iy, iw, ih, 1, 1, b);
+                self.scatter(PKind::Armchair, ix, iy, iw, ih, 1, 1, b);
+                self.scatter(PKind::Rug, ix + iw / 2, iy, iw / 2, ih, 2, 2, b);
+                self.place_wall(PKind::Stairs, ix, iy, iw, ih, 1, 3, b);
                 self.scatter(PKind::Plant, ix, iy, iw, ih, 1, 1, b);
+                self.scatter(PKind::Plant, ix, iy, iw, ih, 1, 1, b);
+                self.scatter(PKind::FloorLamp, ix, iy, iw, ih, 1, 1, b);
+                self.scatter(PKind::CoatRack, ix, iy, iw, ih, 1, 1, b);
             }
             BKind::Market => {}
             BKind::Clothing | BKind::General | BKind::GunShop | BKind::Pharmacy | BKind::Pawn => {
@@ -1009,7 +1060,12 @@ impl<'a> Ctx<'a> {
                 }
                 if bl.kind == BKind::Clothing {
                     self.scatter(PKind::Mirror, ix, iy, iw, ih, 1, 1, b);
+                    for _ in 0..3 {
+                        self.scatter(PKind::ClothesRack, ix, iy, iw, ih, 2, 1, b);
+                    }
+                    self.scatter(PKind::CoatRack, ix, iy, iw, ih, 1, 1, b);
                 }
+                self.scatter(PKind::Plant, ix, iy, iw, ih, 1, 1, b);
                 if bl.kind == BKind::Pawn {
                     self.scatter(PKind::Safe, ix, iy, iw, ih, 1, 1, b);
                 }
@@ -1021,6 +1077,9 @@ impl<'a> Ctx<'a> {
                         self.spot(b, SpotKind::Work, dx, iy + ih / 2);
                         if bl.kind == BKind::Newspaper {
                             let _ = self.put(PKind::Typewriter, dx + 1, iy + ih / 2 - 1, 1, 1, b);
+                        }
+                        if self.rng.chance(0.6) {
+                            self.scatter(PKind::FilingCabinet, ix, iy, iw, ih, 1, 1, b);
                         }
                     }
                 }

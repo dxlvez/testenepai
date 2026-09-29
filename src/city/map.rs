@@ -221,6 +221,16 @@ pub enum PKind {
     Tv,
     Fridge,
     FloorLamp,
+    BottleShelf,
+    PoolTable,
+    Jukebox,
+    Stage,
+    DrumKit,
+    KeyRack,
+    CoatRack,
+    ClothesRack,
+    FilingCabinet,
+    Stairs,
 }
 
 impl PKind {
@@ -230,11 +240,11 @@ impl PKind {
     }
     pub fn solid(self) -> bool {
         use PKind::*;
-        !matches!(self, Rug | Chair | Stool | Grave | Sphere | Car)
+        !matches!(self, Rug | Chair | Stool | Grave | Sphere | Car | Stage)
     }
     pub fn container(self) -> bool {
         use PKind::*;
-        matches!(self, Wardrobe | Dumpster | Crate | Barrel | Bed | Hay | Safe | Desk | Shelf | Slab | Nightstand | Fridge | Sink)
+        matches!(self, Wardrobe | Dumpster | Crate | Barrel | Bed | Hay | Safe | Desk | Shelf | Slab | Nightstand | Fridge | Sink | BottleShelf | FilingCabinet | ClothesRack | Jukebox)
     }
     pub fn hides_body(self) -> bool {
         use PKind::*;
@@ -293,6 +303,16 @@ impl PKind {
             Tv => "televisão",
             Fridge => "geladeira",
             FloorLamp => "abajur",
+            BottleShelf => "prateleira de bebidas",
+            PoolTable => "mesa de sinuca",
+            Jukebox => "jukebox",
+            Stage => "palco",
+            DrumKit => "bateria",
+            KeyRack => "quadro de chaves",
+            CoatRack => "cabideiro",
+            ClothesRack => "arara de roupas",
+            FilingCabinet => "arquivo de aço",
+            Stairs => "escada",
         }
     }
 }

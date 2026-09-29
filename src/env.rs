@@ -6,7 +6,7 @@ use crate::render::city3d::{CityVis, Mats};
 use crate::sim::agents::{Act, Sim};
 use crate::state::Game;
 use crate::world::CityMap;
-use bevy::pbr::{CascadeShadowConfigBuilder, DistanceFog, FogFalloff, NotShadowCaster};
+use bevy::pbr::{CascadeShadowConfigBuilder, DistanceFog, FogFalloff, FogVolume, NotShadowCaster, VolumetricLight};
 use bevy::prelude::*;
 
 /// Game minutes per real second.
@@ -30,6 +30,10 @@ pub struct LampLight(pub usize);
 
 #[derive(Component)]
 pub struct InteriorLight(pub usize);
+
+/// The fog volume around the playing area (mist at night, haze by day).
+#[derive(Component)]
+pub struct AirVolume;
 
 #[derive(Component)]
 pub struct RainDrop {
@@ -56,13 +60,21 @@ pub fn setup_env(mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mut mats: Re
         CascadeShadowConfigBuilder { num_cascades: 2, maximum_distance: 60.0, first_cascade_far_bound: 20.0, ..default() }.build(),
         Transform::from_xyz(10.0, 30.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
         Sun,
+        VolumetricLight,
+    ));
+    // the air itself: a fog volume that follows the camera focus (mist at night, haze by day)
+    c.spawn((
+        FogVolume { density_factor: 0.01, absorption: 0.35, scattering: 0.18, scattering_asymmetry: 0.75, light_intensity: 0.3, ..default() },
+        Transform::from_scale(Vec3::new(70.0, 14.0, 70.0)),
+        AirVolume,
     ));
     for i in 0..20 {
         c.spawn((
             PointLight { color: Color::srgb(1.0, 0.72, 0.42), intensity: 0.0, range: 16.0, radius: 0.15, shadows_enabled: i < 4, ..default() },
             Transform::from_xyz(0.0, -50.0, 0.0),
             LampLight(i),
-        ));
+        ))
+        .insert_if(VolumetricLight, || i < 3);
     }
     for i in 0..6 {
         c.spawn((
@@ -161,13 +173,15 @@ pub fn update_env(
     mut env: ResMut<EnvState>,
     mut ambient: ResMut<AmbientLight>,
     mut clear: ResMut<ClearColor>,
-    (mut sun, mut lamps, mut inter, mut fogq, mut glass, mut fx): (
+    (mut sun, mut lamps, mut inter, mut fogq, mut glass, mut fx, mut air, mut grading): (
         Query<(&mut DirectionalLight, &mut Transform), With<Sun>>,
         Query<(&LampLight, &mut PointLight, &mut Transform), (Without<Sun>, Without<InteriorLight>)>,
         Query<(&InteriorLight, &mut PointLight, &mut Transform), (Without<Sun>, Without<LampLight>)>,
         Query<&mut DistanceFog, With<MainCam>>,
         Query<&mut MeshMaterial3d<StandardMaterial>>,
         Query<(&mut Visibility, Has<crate::render::city3d::LampHalos>), Or<(With<crate::render::city3d::LampHalos>, With<crate::render::city3d::Puddles>)>>,
+        Query<(&mut FogVolume, &mut Transform), (With<AirVolume>, Without<Sun>, Without<LampLight>, Without<InteriorLight>)>,
+        Query<&mut bevy::render::view::ColorGrading, With<MainCam>>,
     ),
     mut mats: ResMut<Assets<StandardMaterial>>,
     settings: Res<crate::keys::Settings>,
@@ -210,7 +224,7 @@ pub fn update_env(
         }
     }
     ambient.brightness = (320.0 + amb * 600.0 * overcast + flash * 1500.0) * (1.0 - rf * 0.6);
-    ambient.color = Color::srgb(0.5 + redness * 0.4, 0.5 - redness * 0.2, 0.75 - redness * 0.3).mix(&Color::srgb(0.9, 0.15, 0.2), rf * 0.7);
+    ambient.color = Color::srgb(0.5 + redness * 0.4 - env.darkness * 0.15, 0.5 - redness * 0.2 - env.darkness * 0.05, 0.75 - redness * 0.3 + env.darkness * 0.2).mix(&Color::srgb(0.9, 0.15, 0.2), rf * 0.7);
     let sky_c = sky.to_srgba();
     clear.0 = Color::srgb(sky_c.red * overcast + flash * 0.5, sky_c.green * overcast + flash * 0.5, sky_c.blue * overcast + flash * 0.6);
     env.darkness = 1.0 - s * overcast;
@@ -241,6 +255,24 @@ pub fn update_env(
                 }
             }
         }
+    }
+    // volumetric air: thick blue mist at night (more with rain / city fog), soft golden haze by day
+    if let Ok((mut fv, mut tr)) = air.single_mut() {
+        tr.translation = Vec3::new(cam.focus.x, 6.0, cam.focus.z);
+        let nightk = env.darkness.clamp(0.0, 1.0);
+        let base = if settings.fog { 0.004 + nightk * 0.016 + rain * 0.008 + game.fog * 0.02 } else { 0.002 };
+        fv.density_factor += (base - fv.density_factor) * (dt * 0.5).min(1.0);
+        fv.fog_color = Color::srgb(0.35 + (1.0 - nightk) * 0.6, 0.42 + (1.0 - nightk) * 0.5, 0.6 + (1.0 - nightk) * 0.3).mix(&Color::srgb(0.9, 0.1, 0.15), rf * 0.8);
+        fv.light_tint = if nightk > 0.5 { Color::srgb(1.0, 0.85, 0.65) } else { Color::srgb(1.0, 0.92, 0.8) };
+    }
+    // colour grade by time of day: cold blue nights, warm golden days, dusky evenings
+    if let Ok(mut cg) = grading.single_mut() {
+        let nightk = env.darkness.clamp(0.0, 1.0);
+        let golden = ((hour - 6.0).abs() < 1.5 || (hour - 18.5).abs() < 1.5) as i32 as f32;
+        let want_t = -0.1 * nightk + (1.0 - nightk) * (0.05 + golden * 0.15);
+        let want_s = 1.0 - nightk * 0.1 + golden * 0.1;
+        cg.global.temperature += (want_t - cg.global.temperature) * (dt * 0.8).min(1.0);
+        cg.global.post_saturation += (want_s - cg.global.post_saturation) * (dt * 0.8).min(1.0);
     }
     let night_halo = env.darkness > 0.55;
     for (mut v, is_halo) in fx.iter_mut() {

@@ -28,12 +28,48 @@ pub fn build(kind: PKind, w: f32, h: f32, tint: f32, year: i32, seed: u32, tree:
     }
     match kind {
         PKind::Counter => {
-            s.cuboid(v(0.0, 0.1, 0.15), v(w, 1.05, h - 0.15), dark_wood);
-            s.cuboid(v(-0.02, 1.05, 0.1), v(w + 0.02, 1.12, h - 0.1), wood);
-            if seed % 2 == 0 {
-                for i in 0..3 {
-                    s.cylinder(v(0.2 + i as f32 * 0.25, 1.12, 0.5), 0.04, 0.22, 6, c3([0.25, 0.4, 0.3]));
+            // panelled wooden bar/shop counter, polished top, brass foot rail
+            s.cuboid(v(0.0, 0.0, 0.15), v(w, 1.02, h - 0.15), dark_wood);
+            for i in 0..((w / 0.5).max(1.0) as i32) {
+                let x = i as f32 * 0.5;
+                for z in [0.14, h - 0.16] {
+                    s.cuboid(v(x + 0.06, 0.15, z - 0.005), v(x + 0.44, 0.85, z + 0.005), wood);
                 }
+            }
+            s.cuboid(v(-0.02, 1.02, 0.08), v(w + 0.02, 1.1, h - 0.08), wood);
+            for z in [0.02, h - 0.02] {
+                s.rod(v(0.0, 0.18, z), v(w, 0.18, z), 0.022, c3([0.75, 0.6, 0.28]));
+            }
+            match seed % 5 {
+                0 => {
+                    // beer taps
+                    for i in 0..3 {
+                        let x = 0.2 + i as f32 * 0.25;
+                        s.cylinder(v(x, 1.1, h * 0.5), 0.03, 0.12, 8, c3([0.75, 0.75, 0.78]));
+                        s.cylinder(v(x, 1.22, h * 0.5), 0.015, 0.22, 6, c3(pick(&[[0.1, 0.1, 0.1], [0.6, 0.1, 0.1], [0.8, 0.7, 0.3]], seed, i + 3)));
+                    }
+                }
+                1 => {
+                    // cash register
+                    let col = if year < 1950 { c3([0.72, 0.58, 0.28]) } else { c3([0.3, 0.3, 0.32]) };
+                    s.cuboid(v(0.2, 1.1, 0.25), v(0.8, 1.35, h - 0.25), col);
+                    s.cuboid(v(0.25, 1.35, 0.35), v(0.75, 1.5, 0.6), col);
+                    for k in 0..4 {
+                        s.cylinder(v(0.3 + k as f32 * 0.12, 1.35, 0.3), 0.02, 0.03, 6, c3([0.9, 0.88, 0.8]));
+                    }
+                }
+                2 => {
+                    // glasses and a bottle
+                    for i in 0..3 {
+                        s.frustum(v(0.2 + i as f32 * 0.2, 1.1, 0.45), 0.03, 0.04, 0.11, 8, c3([0.75, 0.8, 0.82]));
+                    }
+                    s.cylinder(v(0.8, 1.1, 0.55), 0.035, 0.22, 8, c3([0.3, 0.2, 0.08]));
+                }
+                3 => {
+                    // ledger / newspapers
+                    s.cuboid(v(0.25, 1.1, 0.3), v(0.75, 1.13, 0.7), c3([0.85, 0.82, 0.72]));
+                }
+                _ => {}
             }
         }
         PKind::Shelf => {
@@ -818,6 +854,171 @@ fn furniture(kind: PKind, s: &mut MB, g: &mut MB, w: f32, h: f32, tint: f32, yea
             // glowing screen (blue-grey flicker handled by the glow material)
             let (y0, y1) = if old { (0.42, 0.85) } else { (0.52, 0.92) };
             g.cuboid(v(0.22, y0, 0.28), v(0.68, y1, 0.3), c3([0.35, 0.45, 0.6]));
+        }
+        PKind::BottleShelf => {
+            // back bar: cabinet, mirror, three shelves packed with bottles of every shape
+            let (x0, x1) = (0.02, w - 0.02);
+            s.cuboid(v(x0, 0.0, 0.55), v(x1, 0.95, h - 0.02), wood_d);
+            s.cuboid(v(x0, 0.95, 0.6), v(x1, 1.0, h - 0.02), wood);
+            s.cuboid(v(x0, 1.0, h - 0.08), v(x1, 2.5, h - 0.02), wood_d);
+            s.cuboid(v(x0 + 0.1, 1.05, h - 0.09), v(x1 - 0.1, 2.35, h - 0.08), c3([0.45, 0.5, 0.55]));
+            s.cuboid(v(x0 - 0.03, 2.45, h - 0.2), v(x1 + 0.03, 2.55, h), wood);
+            for (k, y) in [1.3f32, 1.72, 2.12].iter().enumerate() {
+                s.cuboid(v(x0 + 0.05, *y - 0.03, h - 0.3), v(x1 - 0.05, *y, h - 0.08), wood);
+                let n = ((x1 - x0) / 0.1) as i32;
+                for i in 0..n {
+                    let bs = seed.wrapping_add(i as u32 * 31 + k as u32 * 977);
+                    let x = x0 + 0.08 + i as f32 * 0.1;
+                    let z = h - 0.2;
+                    let col = pick(&[[0.2, 0.35, 0.15], [0.45, 0.25, 0.08], [0.85, 0.85, 0.8], [0.6, 0.12, 0.1], [0.15, 0.15, 0.25], [0.7, 0.55, 0.2], [0.3, 0.2, 0.12]], bs, 1);
+                    let tall = 0.2 + roll(bs, 2) * 0.12;
+                    match bs % 3 {
+                        0 => {
+                            s.cylinder(v(x, *y, z), 0.035, tall, 8, c3(col));
+                            s.frustum(v(x, *y + tall, z), 0.035, 0.012, 0.08, 8, c3(col));
+                        }
+                        1 => {
+                            s.cuboid(v(x - 0.035, *y, z - 0.03), v(x + 0.035, *y + tall * 0.8, z + 0.03), c3(col));
+                            s.cylinder(v(x, *y + tall * 0.8, z), 0.012, 0.05, 6, c3([0.2, 0.2, 0.2]));
+                        }
+                        _ => {
+                            s.sphere(v(x, *y + 0.07, z), Vec3::new(0.045, 0.07, 0.045), 8, c3(col));
+                            s.cylinder(v(x, *y + 0.12, z), 0.012, 0.1, 6, c3(col));
+                        }
+                    }
+                    // labels
+                    if bs % 2 == 0 {
+                        s.cuboid(v(x - 0.03, *y + 0.05, z - 0.037), v(x + 0.03, *y + 0.11, z - 0.034), c3([0.9, 0.85, 0.7]));
+                    }
+                }
+            }
+            // glasses on the counter top
+            for i in 0..((x1 - x0) / 0.25) as i32 {
+                s.frustum(v(x0 + 0.12 + i as f32 * 0.25, 1.0, 0.75), 0.03, 0.04, 0.1, 8, c3([0.75, 0.8, 0.82]));
+            }
+        }
+        PKind::PoolTable => {
+            let felt = pick(&[[0.1, 0.4, 0.2], [0.1, 0.25, 0.45], [0.45, 0.1, 0.12]], seed, 1);
+            s.cuboid(v(0.1, 0.62, 0.1), v(w - 0.1, 0.78, h - 0.1), wood_d);
+            s.cuboid(v(0.18, 0.78, 0.18), v(w - 0.18, 0.8, h - 0.18), c3(felt));
+            for (x, z) in [(0.2, 0.2), (w - 0.2, 0.2), (0.2, h - 0.2), (w - 0.2, h - 0.2)] {
+                s.frustum(v(x, 0.0, z), 0.07, 0.09, 0.62, 8, wood_d);
+            }
+            for i in 0..8 {
+                let col = [[0.9, 0.8, 0.2], [0.2, 0.3, 0.8], [0.8, 0.15, 0.1], [0.4, 0.2, 0.5], [0.95, 0.5, 0.1], [0.1, 0.45, 0.2], [0.5, 0.15, 0.1], [0.05, 0.05, 0.05]][i];
+                s.sphere(v(w * 0.3 + (i % 3) as f32 * 0.07, 0.83, h * 0.5 + (i / 3) as f32 * 0.07 - 0.07), Vec3::splat(0.03), 8, c3(col));
+            }
+            s.sphere(v(w * 0.72, 0.83, h * 0.5), Vec3::splat(0.03), 8, c3([0.95, 0.95, 0.92]));
+            s.rod(v(w * 0.75, 0.82, h * 0.45), v(w * 0.95, 0.9, 0.2), 0.012, c3([0.6, 0.45, 0.25]));
+        }
+        PKind::Jukebox => {
+            let body = pick(&[[0.6, 0.1, 0.12], [0.75, 0.55, 0.3], [0.2, 0.3, 0.5]], seed, 1);
+            s.cuboid(v(0.15, 0.0, 0.3), v(0.85, 1.2, 0.85), c3(body));
+            s.sphere(v(0.5, 1.2, 0.58), Vec3::new(0.35, 0.3, 0.27), 12, c3(body));
+            g.cuboid(v(0.22, 0.7, 0.28), v(0.78, 1.15, 0.3), c3([1.0, 0.7, 0.3]));
+            g.cuboid(v(0.18, 0.2, 0.28), v(0.24, 1.3, 0.3), c3([1.0, 0.3, 0.6]));
+            g.cuboid(v(0.76, 0.2, 0.28), v(0.82, 1.3, 0.3), c3([0.3, 0.8, 1.0]));
+            s.cuboid(v(0.25, 0.25, 0.27), v(0.75, 0.6, 0.29), c3([0.7, 0.7, 0.72]));
+        }
+        PKind::Stage => {
+            s.cuboid(v(0.0, 0.0, 0.0), v(w, 0.4, h), wood_d);
+            s.cuboid(v(-0.02, 0.36, -0.02), v(w + 0.02, 0.42, h + 0.02), wood);
+            // velvet curtain at the back and sides
+            let red = c3(pick(&[[0.5, 0.05, 0.08], [0.35, 0.05, 0.3], [0.15, 0.1, 0.35]], seed, 2));
+            for i in 0..((w / 0.18) as i32) {
+                let x = i as f32 * 0.18;
+                s.cuboid(v(x, 0.4, h - 0.12 - (i % 2) as f32 * 0.05), v(x + 0.18, 3.0, h - 0.02), red);
+            }
+            s.cuboid(v(-0.05, 2.8, h - 0.3), v(w + 0.05, 3.0, h), c3([0.7, 0.55, 0.2]));
+            // microphone stand
+            s.cylinder(v(w * 0.5, 0.42, h * 0.35), 0.1, 0.02, 10, c3([0.1, 0.1, 0.1]));
+            s.cylinder(v(w * 0.5, 0.42, h * 0.35), 0.012, 1.45, 6, c3([0.7, 0.7, 0.72]));
+            s.sphere(v(w * 0.5, 1.9, h * 0.35), Vec3::new(0.035, 0.05, 0.035), 8, c3([0.75, 0.75, 0.78]));
+            // footlights
+            for i in 0..((w / 0.5) as i32) {
+                g.sphere(v(0.25 + i as f32 * 0.5, 0.44, 0.08), Vec3::splat(0.04), 6, c3([1.0, 0.85, 0.5]));
+            }
+        }
+        PKind::DrumKit => {
+            let shell = c3(pick(&[[0.6, 0.1, 0.1], [0.85, 0.85, 0.82], [0.1, 0.1, 0.12], [0.3, 0.15, 0.4]], seed, 1));
+            s.cyl_z(v(0.5, 0.3, 0.5), 0.28, 0.2, 14, shell, c3([0.92, 0.9, 0.85]));
+            for (x, z, r, y) in [(0.2, 0.25, 0.14, 0.55), (0.8, 0.25, 0.14, 0.55), (0.25, 0.8, 0.16, 0.45)] {
+                s.cylinder(v(x, y, z), r, 0.15, 12, shell);
+                s.cylinder(v(x, y + 0.15, z), r, 0.005, 12, c3([0.92, 0.9, 0.85]));
+                s.cylinder(v(x, 0.0, z), 0.012, y, 6, c3([0.7, 0.7, 0.72]));
+            }
+            for (x, z) in [(0.05, 0.6), (0.9, 0.7)] {
+                s.cylinder(v(x, 0.0, z), 0.012, 0.95, 6, c3([0.7, 0.7, 0.72]));
+                s.frustum(v(x, 0.95, z), 0.2, 0.02, 0.04, 14, c3([0.75, 0.6, 0.25]));
+            }
+            s.cylinder(v(0.5, 0.0, 0.9), 0.15, 0.45, 10, c3([0.1, 0.1, 0.1]));
+        }
+        PKind::KeyRack => {
+            // pigeonholes with keys and letters behind reception
+            s.cuboid(v(0.05, 0.9, h - 0.12), v(w - 0.05, 2.2, h - 0.02), wood_d);
+            let cols = ((w - 0.1) / 0.14) as i32;
+            for r in 0..6 {
+                for c in 0..cols {
+                    let x = 0.08 + c as f32 * 0.14;
+                    let y = 0.95 + r as f32 * 0.2;
+                    s.cuboid(v(x, y, h - 0.13), v(x + 0.12, y + 0.17, h - 0.12), c3([0.18, 0.12, 0.08]));
+                    let k = seed.wrapping_add((r * 17 + c) as u32);
+                    if k % 3 != 0 {
+                        s.cuboid(v(x + 0.05, y + 0.03, h - 0.135), v(x + 0.07, y + 0.1, h - 0.13), c3([0.75, 0.6, 0.25]));
+                    }
+                    if k % 5 == 0 {
+                        s.cuboid(v(x + 0.01, y + 0.1, h - 0.14), v(x + 0.11, y + 0.14, h - 0.13), c3([0.92, 0.9, 0.82]));
+                    }
+                }
+            }
+        }
+        PKind::CoatRack => {
+            s.cylinder(v(0.5, 0.0, 0.5), 0.18, 0.03, 10, wood_d);
+            s.cylinder(v(0.5, 0.0, 0.5), 0.025, 1.8, 8, wood_d);
+            for k in 0..4 {
+                let a = k as f32 * 1.57;
+                s.rod(v(0.5, 1.65, 0.5), v(0.5 + a.cos() * 0.15, 1.75, 0.5 + a.sin() * 0.15), 0.012, wood_d);
+            }
+            // a coat and a hat hanging
+            if seed % 2 == 0 {
+                s.cuboid(v(0.35, 0.9, 0.42), v(0.55, 1.7, 0.52), c3(pick(&FABRICS, seed, 3)));
+            }
+            s.frustum(v(0.62, 1.72, 0.5), 0.1, 0.08, 0.1, 10, c3([0.12, 0.1, 0.1]));
+        }
+        PKind::ClothesRack => {
+            s.rod(v(0.05, 1.5, 0.5), v(w - 0.05, 1.5, 0.5), 0.015, c3([0.7, 0.7, 0.72]));
+            for x in [0.05, w - 0.05] {
+                s.rod(v(x, 0.0, 0.5), v(x, 1.5, 0.5), 0.015, c3([0.7, 0.7, 0.72]));
+            }
+            let n = ((w - 0.2) / 0.09) as i32;
+            for i in 0..n {
+                let x = 0.1 + i as f32 * 0.09;
+                let col = pick(&FABRICS, seed.wrapping_add(i as u32), 4);
+                let long = seed.wrapping_add(i as u32) % 3 == 0;
+                s.cuboid(v(x, if long { 0.4 } else { 0.85 }, 0.32), v(x + 0.05, 1.45, 0.68), c3(col));
+            }
+        }
+        PKind::FilingCabinet => {
+            let col = if year < 1950 { [0.35, 0.3, 0.22] } else { pick(&[[0.4, 0.45, 0.4], [0.55, 0.55, 0.52], [0.3, 0.32, 0.38]], seed, 1) };
+            s.cuboid(v(0.2, 0.0, 0.2), v(0.8, 1.35, 0.9), c3(col));
+            for k in 0..4 {
+                let y = 0.1 + k as f32 * 0.32;
+                s.cuboid(v(0.24, y, 0.18), v(0.76, y + 0.27, 0.2), c3([col[0] * 0.85, col[1] * 0.85, col[2] * 0.85]));
+                s.cuboid(v(0.44, y + 0.18, 0.16), v(0.56, y + 0.21, 0.18), c3([0.75, 0.75, 0.78]));
+            }
+        }
+        PKind::Stairs => {
+            // a flight of stairs going up (out of the cut-away view)
+            let steps = 10;
+            for i in 0..steps {
+                let y = i as f32 * 0.25;
+                let z0 = i as f32 * (h / steps as f32);
+                s.cuboid(v(0.05, 0.0, z0), v(w - 0.05, y + 0.25, z0 + h / steps as f32 + 0.02), wood);
+                s.cuboid(v(0.05, y + 0.22, z0), v(w - 0.05, y + 0.27, z0 + 0.04), wood_d);
+            }
+            for x in [0.05, w - 0.05] {
+                s.rod(v(x, 1.0, 0.0), v(x, 3.4, h), 0.03, wood_d);
+            }
         }
         PKind::FloorLamp => {
             s.cylinder(v(0.5, 0.0, 0.5), 0.14, 0.03, 10, metal);
