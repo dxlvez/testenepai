@@ -200,7 +200,7 @@ pub fn fade_trees(
         // a canopy is ~3 m wide and sits high, so it blocks the view on the camera side of Elias
         let along = d.dot(to_cam);
         let across = (d - to_cam * along).length();
-        let block = along > -1.5 && along < 9.0 && across < 3.4;
+        let block = along > -2.0 && along < 13.0 && across < 4.5 + along.max(0.0) * 0.15;
         let want = if block { Visibility::Hidden } else { Visibility::Inherited };
         if *v != want {
             *v = want;
@@ -340,7 +340,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                     let (fx, fz) = (x as f32, y as f32);
                     let n = hashf(x, y, 1) * 0.08;
                     match m.get(x, y) {
-                        Tile::Road => {
+                            let k = [0.62 + grass[0] * 0.5 + n, 0.8 + grass[1] * 0.5 + n, 0.5 + grass[2] * 0.5 + n];
                             let col = if modern { [0.95 + n, 0.95 + n, 0.95 + n] } else { [1.0 + n, 1.0 + n, 1.0 + n] };
                             road.floor(fx, fz, fx + 1.0, fz + 1.0, 0.0, c3(col));
                             if modern && hash2(x, y, 3) % 2 == 0 {
