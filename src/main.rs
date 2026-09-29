@@ -273,6 +273,7 @@ fn main() {
                 .after(crime::fade_fx),
         );
     app.add_systems(Update, (render::birds::spawn_birds, render::birds::animate_birds).chain().after(crime::player_death));
+    app.add_systems(Update, render::city3d::fade_trees);
     embed_models(&mut app);
     render::lib3d::register_embedded(&mut app);
     app.run();

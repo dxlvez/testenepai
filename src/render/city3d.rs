@@ -182,6 +182,32 @@ pub struct BVis {
 #[derive(Component)]
 pub struct LampHalos;
 
+/// Real trees; hidden while they stand between the camera and Elias (Diablo-style see-through).
+#[derive(Component)]
+pub struct TreeCanopy;
+
+pub fn fade_trees(
+    game: Res<crate::state::Game>,
+    cam: Query<&GlobalTransform, With<crate::camera::MainCam>>,
+    mut q: Query<(&Transform, &mut Visibility), With<TreeCanopy>>,
+) {
+    let Ok(ct) = cam.single() else { return };
+    let cp = ct.translation();
+    let pp = Vec3::new(game.player.pos.x, 1.0, game.player.pos.y);
+    let to_cam = Vec2::new(cp.x - pp.x, cp.z - pp.z).normalize_or_zero();
+    for (tr, mut v) in q.iter_mut() {
+        let d = Vec2::new(tr.translation.x - pp.x, tr.translation.z - pp.z);
+        // a canopy is ~3 m wide and sits high, so it blocks the view on the camera side of Elias
+        let along = d.dot(to_cam);
+        let across = (d - to_cam * along).length();
+        let block = along > -1.5 && along < 9.0 && across < 3.4;
+        let want = if block { Visibility::Hidden } else { Visibility::Inherited };
+        if *v != want {
+            *v = want;
+        }
+    }
+}
+
 /// Rain puddles on streets and sidewalks (visible when wet).
 #[derive(Component)]
 pub struct Puddles;
@@ -340,7 +366,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                         Tile::Alley => matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.03, c3([0.2 + n, 0.19 + n, 0.18 + n])),
                         Tile::Grass => {
                             // the texture carries the colour; the city's grass tone nudges it (dry Adelaide, lush Bergen)
-                            let k = [0.75 + grass[0] * 0.8 + n, 0.8 + grass[1] * 0.5 + n, 0.75 + grass[2] * 0.8 + n];
+                            let k = [0.55 + grass[0] * 0.5 + n, 0.85 + grass[1] * 0.5 + n, 0.45 + grass[2] * 0.5 + n];
                             grass_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(if s.snow { [1.6, 1.6, 1.7] } else { k }));
                             if !s.snow {
                                 // tufts of real blades so lawns read as grass, not a painted floor
@@ -1301,6 +1327,9 @@ fn real_model(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year:
         super::lib3d::fit(e, centre, p.w as f32 * 0.96, p.h as f32 * 0.96, rot, 1.0)
     };
     let ent = c.spawn((SceneRoot(h.clone()), tr)).id();
+    if p.kind == PKind::Tree {
+        c.entity(ent).insert(TreeCanopy);
+    }
     c.entity(root).add_child(ent);
     Some(ent)
 }
