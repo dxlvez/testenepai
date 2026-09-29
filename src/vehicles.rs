@@ -229,7 +229,7 @@ pub fn car_value(year: i32) -> i32 {
 }
 
 /// Spawn parked and moving cars for the current city.
-pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityMap>>, mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats: Option<Res<Mats>>, old: Query<Entity, With<CarVis>>, models: Option<Res<crate::render::models::Models>>) {
+pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityMap>>, mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats: Option<Res<Mats>>, old: Query<Entity, With<CarVis>>, models: Option<Res<crate::render::models::Models>>, lib: Option<Res<crate::render::lib3d::Lib>>) {
     let Some(map) = map else { return };
     let Some(mats) = mats else { return };
     let key = (game.city, game.year, game.timeline);
@@ -343,7 +343,33 @@ pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityM
         }
         let horse = car.horse;
         let cid = car.id;
-        let e = if horse {
+        // real wagon/buggy + animated horse from the model library when the era has one
+        let real = if horse {
+            lib.as_deref().and_then(|lib| {
+                let seed = cid.wrapping_mul(2654435761);
+                let cat = if game.city != crate::city::gen::CityId::Bavaria && seed % 3 == 0 { "carriage" } else { "wagon" };
+                let (we, wh) = lib.pick(cat, game.year, seed >> 3, None).or_else(|| lib.pick("wagon", game.year, seed >> 3, None))?;
+                let (he, hh) = lib.pick("horse", game.year, seed >> 9, None)?;
+                Some((we, wh, he, hh))
+            })
+        } else {
+            None
+        };
+        let is_real = real.is_some();
+        let e = if let Some((we, wh, he, hh)) = real {
+            // models face -Z; carts drive along local +X
+            let face = Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2);
+            let hitch = we.hitch.unwrap_or([0.0, 1.05, -3.6]);
+            let chest = he.chest.unwrap_or([0.0, 1.05, -0.88]);
+            let horse_fwd = -(hitch[2] - chest[2]);
+            let back = we.size[2] * 0.5 - 0.6;
+            let shift = (horse_fwd + 1.4 - back) * 0.5;
+            let root = c.spawn((Transform::from_xyz(car.pos.x, 0.0, car.pos.y), Visibility::default(), CarVis(car.id))).id();
+            let w = c.spawn((SceneRoot(wh), Transform::from_xyz(-shift, 0.0, 0.0).with_rotation(face))).id();
+            let h = c.spawn((SceneRoot(hh), Transform::from_xyz(horse_fwd - shift, 0.0, 0.0).with_rotation(face), crate::render::horse::RealHorse::new(cid, &he))).id();
+            c.entity(root).add_children(&[w, h]);
+            root
+        } else if horse {
             let mb = wagon_mesh(car.color, car.id);
             let g = lantern_mesh();
             c.spawn((Mesh3d(meshes.add(mb.build())), MeshMaterial3d(mats.plain.clone()), Transform::from_xyz(car.pos.x, 0.0, car.pos.y), CarVis(car.id)))
@@ -371,7 +397,7 @@ pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityM
             }
             root
         };
-        if horse {
+        if horse && !is_real {
             let h = crate::render::horse::spawn_horse(&mut c, &mut meshes, &mats.skin, cid.wrapping_mul(2654435761) >> 7, cid);
             c.entity(h).insert(Transform::from_xyz(1.55, 0.0, 0.0));
             c.entity(e).add_child(h);

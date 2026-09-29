@@ -23,6 +23,18 @@ pub struct Entry {
     pub max_year: i32,
     #[serde(default)]
     pub style: String,
+    /// animated models (horses): clip name -> animation index in the file
+    #[serde(default)]
+    pub clips: std::collections::HashMap<String, usize>,
+    #[serde(default)]
+    pub walk_speed: f32,
+    #[serde(default)]
+    pub trot_speed: f32,
+    /// horse: where its breast is; vehicle: where the horse's breast goes
+    #[serde(default)]
+    pub chest: Option<[f32; 3]>,
+    #[serde(default)]
+    pub hitch: Option<[f32; 3]>,
 }
 
 fn far_future() -> i32 {
@@ -75,6 +87,11 @@ impl Lib {
             .or_insert_with(|| self.server.load(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/props/{}", chosen.file))))
             .clone();
         Some((chosen.clone(), h))
+    }
+
+    /// Asset path of an embedded model file, for loading its animation clips.
+    pub fn path(file: &str) -> String {
+        format!("embedded://red_thread/models/props/{}", file)
     }
 }
 

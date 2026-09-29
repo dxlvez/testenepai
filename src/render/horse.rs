@@ -205,3 +205,84 @@ pub fn animate_horses(time: Res<Time>, cars: Res<crate::vehicles::Cars>, mut rig
         }
     }
 }
+
+/// A real, skeletally animated horse model (hitched to cart `car`).
+#[derive(Component)]
+pub struct RealHorse {
+    pub car: u32,
+    pub file: String,
+    pub idle: usize,
+    pub walk: usize,
+    pub trot: usize,
+    pub walk_speed: f32,
+    pub trot_speed: f32,
+    player: Option<Entity>,
+    nodes: [AnimationNodeIndex; 3],
+    cur: usize,
+}
+
+impl RealHorse {
+    pub fn new(car: u32, e: &super::lib3d::Entry) -> Self {
+        let g = |k: &str, d: usize| e.clips.get(k).copied().unwrap_or(d);
+        RealHorse {
+            car,
+            file: e.file.clone(),
+            idle: g("idle", 0),
+            walk: g("walk", 0),
+            trot: g("trot", 0),
+            walk_speed: if e.walk_speed > 0.0 { e.walk_speed } else { 1.2 },
+            trot_speed: if e.trot_speed > 0.0 { e.trot_speed } else { 3.0 },
+            player: None,
+            nodes: [AnimationNodeIndex::new(0); 3],
+            cur: 99,
+        }
+    }
+}
+
+fn find_player(e: Entity, players: &Query<(), With<AnimationPlayer>>, kids: &Query<&Children>) -> Option<Entity> {
+    if players.get(e).is_ok() {
+        return Some(e);
+    }
+    kids.get(e).ok()?.iter().find_map(|k| find_player(k, players, kids))
+}
+
+/// Hook up each real horse's animation player, then walk / trot / stand with its cart's speed.
+#[allow(clippy::type_complexity)]
+pub fn animate_real_horses(
+    mut c: Commands,
+    a: Res<AssetServer>,
+    cars: Res<crate::vehicles::Cars>,
+    mut graphs: ResMut<Assets<AnimationGraph>>,
+    mut horses: Query<(Entity, &mut RealHorse)>,
+    has_player: Query<(), With<AnimationPlayer>>,
+    kids: Query<&Children>,
+    mut players: Query<(&mut AnimationPlayer, Option<&mut AnimationTransitions>)>,
+) {
+    for (e, mut h) in horses.iter_mut() {
+        let Some(pe) = h.player else {
+            let Some(pe) = find_player(e, &has_player, &kids) else { continue };
+            let path = super::lib3d::Lib::path(&h.file);
+            let clips = [h.idle, h.walk, h.trot].map(|i| a.load(GltfAssetLabel::Animation(i).from_asset(path.clone())));
+            let (graph, nodes) = AnimationGraph::from_clips(clips);
+            h.nodes = [nodes[0], nodes[1], nodes[2]];
+            c.entity(pe).insert((AnimationGraphHandle(graphs.add(graph)), AnimationTransitions::new()));
+            h.player = Some(pe);
+            continue;
+        };
+        let Ok((mut player, Some(mut tr))) = players.get_mut(pe) else { continue };
+        let sp = cars.list.iter().find(|c| c.id == h.car).map(|c| c.speed.abs()).unwrap_or(0.0);
+        let want = if sp < 0.15 { 0 } else if sp < (h.walk_speed + h.trot_speed) * 0.5 { 1 } else { 2 };
+        if want != h.cur {
+            tr.play(&mut player, h.nodes[want], std::time::Duration::from_millis(350)).repeat();
+            h.cur = want;
+        }
+        let rate = match want {
+            1 => (sp / h.walk_speed).clamp(0.6, 1.6),
+            2 => (sp / h.trot_speed).clamp(0.7, 1.6),
+            _ => 1.0,
+        };
+        if let Some(anim) = player.animation_mut(h.nodes[want]) {
+            anim.set_speed(rate);
+        }
+    }
+}

@@ -274,7 +274,7 @@ fn main() {
                 .after(crime::fade_fx),
         );
     app.add_systems(Update, (render::birds::spawn_birds, render::birds::animate_birds).chain().after(crime::player_death));
-    app.add_systems(Update, (render::city3d::fade_trees, render::city3d::interior_light));
+    app.add_systems(Update, (render::city3d::fade_trees, render::city3d::interior_light, render::horse::animate_real_horses));
     app.add_systems(Update, (render::people::bind_people, render::people::animate_people).chain().after(render::character::animate_rigs));
     embed_models(&mut app);
     render::lib3d::register_embedded(&mut app);
