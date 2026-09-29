@@ -1,0 +1,439 @@
+{
+ "skeleton": "mpfb_game_engine",
+ "skeleton_info": {
+  "root_node": "rig",
+  "bones": 53,
+  "fps": 30,
+  "notes": "All files share the node 'rig' with identical bone names and rest rotations. Clips animate bone rotations plus 'pelvis' translation only; the 'rig' node carries a per-character uniform scale so the same pelvis translation fits every body. Characters face -Z, Y up, origin at feet."
+ },
+ "clips": {
+  "idle": {
+   "file": "anims.glb",
+   "index": 0,
+   "name": "idle",
+   "loop": true,
+   "duration": 5.133
+  },
+  "walk": {
+   "file": "anims.glb",
+   "index": 1,
+   "name": "walk",
+   "loop": true,
+   "duration": 2.267,
+   "speed": 1.4
+  },
+  "run": {
+   "file": "anims.glb",
+   "index": 2,
+   "name": "run",
+   "loop": true,
+   "duration": 0.733,
+   "speed": 3.373
+  },
+  "sneak": {
+   "file": "anims.glb",
+   "index": 3,
+   "name": "sneak",
+   "loop": true,
+   "duration": 1.333,
+   "speed": 0.847
+  },
+  "sit": {
+   "file": "anims.glb",
+   "index": 4,
+   "name": "sit",
+   "loop": true,
+   "duration": 0.933
+  },
+  "lie": {
+   "file": "anims.glb",
+   "index": 5,
+   "name": "lie",
+   "loop": true,
+   "duration": 2.0
+  },
+  "dead": {
+   "file": "anims.glb",
+   "index": 6,
+   "name": "dead",
+   "loop": true,
+   "duration": 1.0
+  },
+  "aim": {
+   "file": "anims.glb",
+   "index": 7,
+   "name": "aim",
+   "loop": true,
+   "duration": 5.133
+  },
+  "punch": {
+   "file": "anims.glb",
+   "index": 8,
+   "name": "punch",
+   "loop": false,
+   "duration": 1.067
+  },
+  "carry": {
+   "file": "anims.glb",
+   "index": 9,
+   "name": "carry",
+   "loop": true,
+   "duration": 2.6,
+   "speed": 1.217
+  },
+  "drag": {
+   "file": "anims.glb",
+   "index": 10,
+   "name": "drag",
+   "loop": true,
+   "duration": 3.867,
+   "speed": 0.824
+  },
+  "talk": {
+   "file": "anims.glb",
+   "index": 11,
+   "name": "talk",
+   "loop": true,
+   "duration": 4.9
+  },
+  "pray": {
+   "file": "anims.glb",
+   "index": 12,
+   "name": "pray",
+   "loop": true,
+   "duration": 3.0
+  },
+  "work": {
+   "file": "anims.glb",
+   "index": 13,
+   "name": "work",
+   "loop": true,
+   "duration": 2.733
+  },
+  "dance": {
+   "file": "anims.glb",
+   "index": 14,
+   "name": "dance",
+   "loop": true,
+   "duration": 1.333
+  },
+  "cower": {
+   "file": "anims.glb",
+   "index": 15,
+   "name": "cower",
+   "loop": true,
+   "duration": 1.333
+  },
+  "play": {
+   "file": "anims.glb",
+   "index": 16,
+   "name": "play",
+   "loop": true,
+   "duration": 3.767
+  },
+  "drink": {
+   "file": "anims.glb",
+   "index": 17,
+   "name": "drink",
+   "loop": true,
+   "duration": 4.733
+  },
+  "hands_up": {
+   "file": "anims.glb",
+   "index": 18,
+   "name": "hands_up",
+   "loop": true,
+   "duration": 5.133
+  }
+ },
+ "characters": [
+  {
+   "file": "elias.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 35,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "elias",
+   "skin": "light",
+   "height": 1.812,
+   "tris": 14796
+  },
+  {
+   "file": "man_suit_fedora.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 46,
+   "min_year": 1920,
+   "max_year": 1955,
+   "role": "rich",
+   "skin": "light",
+   "height": 1.788,
+   "tris": 14799
+  },
+  {
+   "file": "man_suit_bowler.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 40,
+   "min_year": 1920,
+   "max_year": 1945,
+   "role": "civil",
+   "skin": "dark",
+   "height": 1.826,
+   "tris": 14799
+  },
+  {
+   "file": "man_worker_coveralls.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 29,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "worker",
+   "skin": "light",
+   "height": 1.832,
+   "tris": 14799
+  },
+  {
+   "file": "man_worker_cap.glb",
+   "sex": "m",
+   "age": "young",
+   "years": 24,
+   "min_year": 1920,
+   "max_year": 1960,
+   "role": "poor",
+   "skin": "medium",
+   "height": 1.743,
+   "tris": 14796
+  },
+  {
+   "file": "man_shirt_tie.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 31,
+   "min_year": 1945,
+   "max_year": 1975,
+   "role": "civil",
+   "skin": "dark",
+   "height": 1.844,
+   "tris": 14796
+  },
+  {
+   "file": "man_casual_jacket.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 42,
+   "min_year": 1965,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "medium",
+   "height": 1.776,
+   "tris": 14799
+  },
+  {
+   "file": "man_polo_young.glb",
+   "sex": "m",
+   "age": "young",
+   "years": 21,
+   "min_year": 1960,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "medium",
+   "height": 1.748,
+   "tris": 14797
+  },
+  {
+   "file": "man_police.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 38,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "police",
+   "skin": "light",
+   "height": 1.852,
+   "tris": 14796
+  },
+  {
+   "file": "man_old.glb",
+   "sex": "m",
+   "age": "old",
+   "years": 72,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "light",
+   "height": 1.71,
+   "tris": 12892
+  },
+  {
+   "file": "man_young_afro.glb",
+   "sex": "m",
+   "age": "young",
+   "years": 19,
+   "min_year": 1965,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "dark",
+   "height": 1.87,
+   "tris": 14798
+  },
+  {
+   "file": "man_rich_tux.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 56,
+   "min_year": 1920,
+   "max_year": 1960,
+   "role": "rich",
+   "skin": "light",
+   "height": 1.836,
+   "tris": 14796
+  },
+  {
+   "file": "man_poor.glb",
+   "sex": "m",
+   "age": "adult",
+   "years": 52,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "poor",
+   "skin": "dark",
+   "height": 1.784,
+   "tris": 14795
+  },
+  {
+   "file": "woman_flapper.glb",
+   "sex": "f",
+   "age": "young",
+   "years": 24,
+   "min_year": 1920,
+   "max_year": 1933,
+   "role": "civil",
+   "skin": "light",
+   "height": 1.651,
+   "tris": 14798
+  },
+  {
+   "file": "woman_dress_40s.glb",
+   "sex": "f",
+   "age": "adult",
+   "years": 31,
+   "min_year": 1930,
+   "max_year": 1959,
+   "role": "civil",
+   "skin": "dark",
+   "height": 1.732,
+   "tris": 13993
+  },
+  {
+   "file": "woman_blouse_skirt.glb",
+   "sex": "f",
+   "age": "adult",
+   "years": 27,
+   "min_year": 1930,
+   "max_year": 1965,
+   "role": "civil",
+   "skin": "light",
+   "height": 1.671,
+   "tris": 14797
+  },
+  {
+   "file": "woman_60s_dress.glb",
+   "sex": "f",
+   "age": "young",
+   "years": 22,
+   "min_year": 1960,
+   "max_year": 1975,
+   "role": "civil",
+   "skin": "light",
+   "height": 1.648,
+   "tris": 12434
+  },
+  {
+   "file": "woman_jeans_blouse.glb",
+   "sex": "f",
+   "age": "adult",
+   "years": 26,
+   "min_year": 1968,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "dark",
+   "height": 1.74,
+   "tris": 14527
+  },
+  {
+   "file": "woman_waitress.glb",
+   "sex": "f",
+   "age": "young",
+   "years": 23,
+   "min_year": 1935,
+   "max_year": 1985,
+   "role": "worker",
+   "skin": "medium",
+   "height": 1.593,
+   "tris": 14798
+  },
+  {
+   "file": "woman_old.glb",
+   "sex": "f",
+   "age": "old",
+   "years": 72,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "light",
+   "height": 1.595,
+   "tris": 14796
+  },
+  {
+   "file": "woman_young.glb",
+   "sex": "f",
+   "age": "young",
+   "years": 18,
+   "min_year": 1950,
+   "max_year": 1999,
+   "role": "civil",
+   "skin": "light",
+   "height": 1.628,
+   "tris": 13317
+  },
+  {
+   "file": "woman_rich_gown.glb",
+   "sex": "f",
+   "age": "adult",
+   "years": 44,
+   "min_year": 1920,
+   "max_year": 1965,
+   "role": "rich",
+   "skin": "light",
+   "height": 1.711,
+   "tris": 13958
+  },
+  {
+   "file": "child_boy.glb",
+   "sex": "m",
+   "age": "child",
+   "years": 9,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "child",
+   "skin": "light",
+   "height": 1.366,
+   "tris": 14474
+  },
+  {
+   "file": "child_girl.glb",
+   "sex": "f",
+   "age": "child",
+   "years": 8,
+   "min_year": 1920,
+   "max_year": 1999,
+   "role": "child",
+   "skin": "dark",
+   "height": 1.307,
+   "tris": 11080
+  }
+ ]
+}
