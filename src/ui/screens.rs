@@ -399,7 +399,7 @@ pub fn build_shop(shop: &Shop, game: &Game, ui: &UiState) -> El {
 // ------------------------------------------------------------------ journal
 
 pub fn build_journal(game: &Game, ui: &UiState, db: &CaseDb) -> El {
-    let tabs = ["DIÁRIO", "JORNAIS", "MEMÓRIA DO MUNDO", "LINHAS DO TEMPO", "HABILIDADES", "CASOS"];
+    let tabs = ["DIÁRIO", "JORNAIS", "MEMÓRIA DO MUNDO", "LINHAS DO TEMPO", "HABILIDADES", "CASOS", "FOTOS"];
     let mut tab_row = vec![];
     for (i, t) in tabs.iter().enumerate() {
         tab_row.push(btn(format!("tab:{}", i), *t).active(ui.tab == i));
@@ -502,7 +502,7 @@ pub fn build_journal(game: &Game, ui: &UiState, db: &CaseDb) -> El {
             body.push(mono(format!("REPUTAÇÃO EM {}: {}", game.city.upper(), rep.join("  ·  ")), 14.0, DIM));
             body.push(mono(format!("Idade do corpo: {:.0} · anos vividos entre linhas: {:.0}", game.player.body_age, game.player.mind_years), 14.0, DIM));
         }
-        _ => {
+        5 => {
             for c in db.0.iter() {
                 let prog = game.cases.iter().find(|p| p.id == c.id);
                 let status = match prog {
@@ -513,6 +513,21 @@ pub fn build_journal(game: &Game, ui: &UiState, db: &CaseDb) -> El {
                 };
                 let known = prog.map(|p| p.started).unwrap_or(false);
                 body.push(mono(format!("CASO {:02}  {:<38} {}  {}", c.id, if known { c.title } else { "???" }, if known { format!("{} {}", c.city.upper(), c.year) } else { "".into() }, status), 14.0, if known { INK } else { FAINT }));
+            }
+        }
+        _ => {
+            for ph in game.photos.iter().rev().skip(ui.scroll.max(0) as usize).take(6) {
+                let mut k = vec![
+                    mono(format!("{} · dia {} · {}", ph.year, ph.day + 1, ph.place), 12.0, PAPER_INK),
+                    wrap(if ph.people.is_empty() { "Ninguém na foto.".to_string() } else { format!("Na foto: {}", ph.people.join(", ")) }, 16.0, PAPER_INK, Fnt::Serif, 900.0),
+                ];
+                if let Some(a) = &ph.anomaly {
+                    k.push(wrap(a.clone(), 15.0, Color::srgb(0.55, 0.08, 0.1), Fnt::SerifI, 900.0));
+                }
+                body.push(col(k).bg(PAPER).pad(10.0));
+            }
+            if game.photos.is_empty() {
+                body.push(t("Nenhuma foto. Compre uma câmera e aperte [V] para fotografar."));
             }
         }
     }

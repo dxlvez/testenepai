@@ -748,3 +748,91 @@ pub fn venue_music(
         vg.ready.remove(0);
     }
 }
+
+// ------------------------------------------------------------------ photography
+
+/// [P] raises the camera (viewfinder: closer framing), [V] takes a picture.
+/// Photos are kept in the journal and saved as PNG next to the case files.
+#[derive(Resource, Default)]
+pub struct PhotoMode {
+    pub on: bool,
+    pub prev_dist: f32,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn photo_system(
+    mut c: Commands,
+    act: Res<Act>,
+    ui: Res<crate::ui::UiState>,
+    mut game: ResMut<Game>,
+    mut pm: ResMut<PhotoMode>,
+    mut cam: ResMut<crate::camera::CamState>,
+    mut toasts: ResMut<Toasts>,
+    mut sfx: EventWriter<Sfx>,
+    (map, sim, crt): (Option<Res<CityMap>>, Res<crate::sim::agents::Sim>, Res<CaseRt>),
+) {
+    if ui.blocks_input() {
+        return;
+    }
+    let has_cam = game.player.inv.iter().any(|i| matches!(i, crate::items::Item::Tool(crate::items::Tool::Camera)));
+    if act.just(Action::Camera) {
+        if !has_cam {
+            toasts.push("Você não tem uma câmera. Procure numa loja ou casa de penhores.");
+        } else {
+            pm.on = !pm.on;
+            if pm.on {
+                pm.prev_dist = cam.dist_target;
+                cam.dist_target = 10.0;
+                toasts.push("Câmera erguida — [V] fotografar, [P] baixar");
+            } else {
+                cam.dist_target = pm.prev_dist.max(12.0);
+            }
+        }
+    }
+    if !act.just(Action::Photo) {
+        return;
+    }
+    if !has_cam {
+        toasts.push("Você não tem uma câmera.");
+        return;
+    }
+    let Some(map) = map else { return };
+    let m = &map.0;
+    let pp = game.player.pos;
+    let place = m
+        .building_at(pp)
+        .map(|b| if m.buildings[b].name.is_empty() { m.buildings[b].kind.label().to_string() } else { m.buildings[b].name.clone() })
+        .or_else(|| m.district_at(pp).map(|d| m.districts[d].name.clone()))
+        .unwrap_or_else(|| game.city.name().to_string());
+    let mut people = Vec::new();
+    for a in sim.agents.iter() {
+        if a.pos.distance(pp) < 9.0 && m.line_clear(pp, a.pos, true) {
+            let p = game.pop.get(a.pid);
+            let who = if p.elias.met || p.case_role.is_some() { p.name() } else { p.job.label(p.female).to_string() };
+            let who = if matches!(a.state, crate::sim::agents::AState::Dead) { format!("{} (morto)", who) } else { who };
+            people.push(who);
+            if people.len() >= 6 {
+                break;
+            }
+        }
+    }
+    let m317 = (game.minute as i32).rem_euclid(24 * 60);
+    let anomaly = if crt.echo_pos.iter().any(|e| e.distance(pp) < 5.0) {
+        Some("Na revelação aparece uma silhueta de sobretudo que não estava ali quando você fotografou.".to_string())
+    } else if (196..=198).contains(&m317) {
+        Some("O relógio no canto da foto marca 3:17. Todos os rostos saíram borrados.".to_string())
+    } else if game.fatigue > 50.0 && crate::util::hashf(game.day, m317, 5) < 0.4 {
+        Some("A foto mostra a mesma rua, mas com carros de outra década.".to_string())
+    } else {
+        None
+    };
+    let n = game.photos.len() + 1;
+    let (year, day) = (game.year, game.day);
+    game.photos.push(crate::state::Photo { year, day, place: place.clone(), people, anomaly: anomaly.clone() });
+    sfx.write(Sfx::Shutter);
+    toasts.push(format!("Foto #{} — {}{}", n, place, if anomaly.is_some() { " (há algo estranho nela)" } else { "" }));
+    let dir = crate::save::dir().join("fotos");
+    let _ = std::fs::create_dir_all(&dir);
+    let path = dir.join(format!("foto_{}_{}_{:03}.png", game.city.name().replace(' ', "_"), game.year, n));
+    c.spawn(bevy::render::view::screenshot::Screenshot::primary_window()).observe(bevy::render::view::screenshot::save_to_disk(path));
+}

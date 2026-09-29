@@ -6,7 +6,22 @@ use crate::keys::Script;
 use crate::state::Game;
 use bevy::prelude::*;
 
-pub fn debug_cmds(mut s: ResMut<Script>, mut game: ResMut<Game>, mut cam: ResMut<CamState>, map: Option<Res<crate::world::CityMap>>, sim: Res<crate::sim::agents::Sim>) {
+#[allow(clippy::type_complexity)]
+pub fn debug_cmds(
+    mut s: ResMut<Script>,
+    mut game: ResMut<Game>,
+    mut cam: ResMut<CamState>,
+    map: Option<Res<crate::world::CityMap>>,
+    sim: Res<crate::sim::agents::Sim>,
+    (db, mut popups, mut choices, mut ui, mut sfx, mut toasts): (
+        Res<crate::cases::run::CaseDb>,
+        ResMut<crate::ui::screens::Popups>,
+        ResMut<crate::ui::screens::Choices>,
+        ResMut<crate::ui::UiState>,
+        EventWriter<crate::audio::Sfx>,
+        ResMut<crate::ui::hud::Toasts>,
+    ),
+) {
     let cmds: Vec<String> = s.cmds.drain(..).collect();
     for c in cmds {
         let (k, v) = c.split_once(':').unwrap_or((c.as_str(), ""));
@@ -107,6 +122,19 @@ pub fn debug_cmds(mut s: ResMut<Script>, mut game: ResMut<Game>, mut cam: ResMut
             "skill" => {
                 for sk in crate::state::Skill::ALL {
                     game.player.skills.insert(sk, v.parse().unwrap_or(5));
+                }
+            }
+            // solve the current case: `solve:3` = right culprit with n layers, `solve:0` = wrong culprit
+            "solve" => {
+                if let Some((def, pi)) = crate::cases::run::current(&game, &db) {
+                    let def = def.clone();
+                    let n: u8 = v.parse().unwrap_or(3);
+                    let pr = &mut game.cases[pi];
+                    pr.accused = Some(if n == 0 { (def.culprit + 1) % def.cast.len() as u8 } else { def.culprit });
+                    pr.method = Some(if n >= 2 { def.method } else { (def.method + 1) % def.methods.len() as u8 });
+                    pr.motive = Some(def.motive);
+                    pr.sphere = Some(if n >= 3 { def.anomaly } else { 0 });
+                    crate::narrative::resolve_case(&mut game, &db, &mut popups, &mut choices, &mut ui, &mut sfx, &mut toasts);
                 }
             }
             "flag" => {

@@ -140,6 +140,7 @@ fn main() {
         .init_resource::<pursuit::Hunt>()
         .init_resource::<world::SpawnAgents>()
         .init_resource::<glue::VenueState>()
+        .init_resource::<glue::PhotoMode>()
         .add_event::<audio::Sfx>()
         .add_event::<crime::CrimeEv>()
         .add_event::<crime::SpawnDecal>()
@@ -200,6 +201,7 @@ fn main() {
                 glue::aim_reactions,
                 glue::desperate_voices,
                 narrative::fatigue_system,
+                glue::photo_system,
                 crime::player_death,
             )
                 .chain()
