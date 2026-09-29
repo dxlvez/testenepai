@@ -105,7 +105,7 @@ pub fn load_city_system(
     db: Res<crate::cases::run::CaseDb>,
     roots: Query<Entity, With<CityRoot>>,
     agents: Query<Entity, With<AgentRoot>>,
-    (mut rt, mut it, mut cars, mut crime_rt, lib): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>, ResMut<crate::crime::CrimeRt>, Option<Res<crate::render::lib3d::Lib>>),
+    (mut rt, mut it, mut cars, mut crime_rt, lib, people): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>, ResMut<crate::crime::CrimeRt>, Option<Res<crate::render::lib3d::Lib>>, Option<Res<crate::render::people::People>>),
 ) {
     if !req.0 {
         return;
@@ -166,6 +166,7 @@ pub fn load_city_system(
     for (i, a) in sim.agents.iter().enumerate() {
         let look = game.pop.get(a.pid).look.clone();
         let (root, rig) = spawn_character(&mut c, &mut meshes, &mats.plain, &look);
+        crate::render::people::dress(&mut c, people.as_deref(), root, &rig, &look, game.year, false);
         c.entity(root).insert((AgentVis { idx: i }, AgentRoot, rig, Transform::from_xyz(a.pos.x, 0.0, a.pos.y)));
     }
     if game.player.pos == Vec2::ZERO || !m.inb(game.player.pos.x as i32, game.player.pos.y as i32) || m.blocked(game.player.pos.x as i32, game.player.pos.y as i32) {
@@ -251,6 +252,7 @@ pub fn spawn_agents_system(
     map: Option<Res<CityMap>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mats: Res<Mats>,
+    people: Option<Res<crate::render::people::People>>,
 ) {
     let Some(map) = map else { return };
     let m = &map.0;
@@ -275,6 +277,7 @@ pub fn spawn_agents_system(
             sim.by_pid.insert(pid, idx);
             let look = game.pop.get(pid).look.clone();
             let (root, rig) = spawn_character(&mut c, &mut meshes, &mats.plain, &look);
+            crate::render::people::dress(&mut c, people.as_deref(), root, &rig, &look, game.year, false);
             c.entity(root).insert((AgentVis { idx }, AgentRoot, rig, Transform::from_xyz(pos.x, 0.0, pos.y)));
         }
     }

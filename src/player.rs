@@ -81,7 +81,7 @@ pub fn elias_look(outfit: crate::items::Outfit, age: f32) -> Look {
     }
 }
 
-pub fn spawn_player_vis(mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats: Option<Res<Mats>>, game: Res<Game>, mut rt: ResMut<PlayerRt>, q: Query<Entity, With<PlayerVis>>) {
+pub fn spawn_player_vis(mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats: Option<Res<Mats>>, game: Res<Game>, mut rt: ResMut<PlayerRt>, q: Query<Entity, With<PlayerVis>>, people: Option<Res<crate::render::people::People>>) {
     if !rt.look_dirty && rt.entity.is_some() {
         return;
     }
@@ -91,6 +91,9 @@ pub fn spawn_player_vis(mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats:
     }
     let look = elias_look(game.player.outfit, game.player.body_age);
     let (root, rig) = spawn_character(&mut c, &mut meshes, &mats.plain, &look);
+    // his own coat unless he is wearing a disguise
+    let own = matches!(game.player.outfit, crate::items::Outfit::Modern | crate::items::Outfit::Suit);
+    crate::render::people::dress(&mut c, people.as_deref(), root, &rig, &look, game.year, own);
     c.entity(root).insert((PlayerVis, rig, Transform::from_xyz(game.player.pos.x, 0.0, game.player.pos.y)));
     rt.entity = Some(root);
     rt.look_dirty = false;

@@ -9,3 +9,4 @@ pub mod horse;
 pub mod lib3d;
 pub mod cars;
 pub mod birds;
+pub mod people;

@@ -160,6 +160,7 @@ fn main() {
                 camera::spawn_camera,
                 render::models::load_models,
                 render::lib3d::load_lib,
+                render::people::load_people,
                 render::post::setup_post,
                 env::setup_env,
                 audio::setup_audio,
@@ -274,6 +275,7 @@ fn main() {
         );
     app.add_systems(Update, (render::birds::spawn_birds, render::birds::animate_birds).chain().after(crime::player_death));
     app.add_systems(Update, render::city3d::fade_trees);
+    app.add_systems(Update, (render::people::bind_people, render::people::animate_people).chain().after(render::character::animate_rigs));
     embed_models(&mut app);
     render::lib3d::register_embedded(&mut app);
     app.run();
