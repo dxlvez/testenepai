@@ -262,7 +262,7 @@ pub fn update_env(
     if let Ok((mut fv, mut tr)) = air.single_mut() {
         tr.translation = Vec3::new(cam.focus.x, 6.0, cam.focus.z);
         let nightk = env.darkness.clamp(0.0, 1.0);
-        let base = if settings.fog { 0.004 + nightk * 0.016 + rain * 0.008 + game.fog * 0.02 } else { 0.002 };
+        let base = if settings.fog { 0.0022 + nightk * 0.018 + rain * 0.008 + game.fog * 0.02 } else { 0.002 };
         fv.density_factor += (base - fv.density_factor) * (dt * 0.5).min(1.0);
         fv.fog_color = Color::srgb(0.35 + (1.0 - nightk) * 0.6, 0.42 + (1.0 - nightk) * 0.5, 0.6 + (1.0 - nightk) * 0.3).mix(&Color::srgb(0.9, 0.1, 0.15), rf * 0.8);
         fv.light_tint = if nightk > 0.5 { Color::srgb(1.0, 0.85, 0.65) } else { Color::srgb(1.0, 0.92, 0.8) };
@@ -271,7 +271,7 @@ pub fn update_env(
     if let Ok(mut cg) = grading.single_mut() {
         let nightk = env.darkness.clamp(0.0, 1.0);
         let golden = ((hour - 6.0).abs() < 1.5 || (hour - 18.5).abs() < 1.5) as i32 as f32;
-        let want_t = -0.1 * nightk + (1.0 - nightk) * (0.05 + golden * 0.15);
+        let want_t = -0.1 * nightk + (1.0 - nightk) * (0.03 + golden * 0.07);
         let want_s = 1.0 - nightk * 0.1 + golden * 0.1;
         cg.global.temperature += (want_t - cg.global.temperature) * (dt * 0.8).min(1.0);
         cg.global.post_saturation += (want_s - cg.global.post_saturation) * (dt * 0.8).min(1.0);

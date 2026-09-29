@@ -1293,7 +1293,7 @@ fn real_model(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year:
         let k = if p.kind == PKind::Tree { (6.0 + (seed % 7) as f32 * 0.6) / e.size[1].max(0.5) } else { 1.0 };
         Transform::from_translation(centre).with_rotation(Quat::from_rotation_y(ang)).with_scale(Vec3::splat(k))
     } else {
-        super::lib3d::fit(e, centre, p.w as f32 * 0.96, p.h as f32 * 0.96, rot, 1.15)
+        super::lib3d::fit(e, centre, p.w as f32 * 0.96, p.h as f32 * 0.96, rot, 1.0)
     };
     let ent = c.spawn((SceneRoot(h.clone()), tr)).id();
     c.entity(root).add_child(ent);
