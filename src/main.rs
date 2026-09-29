@@ -64,6 +64,10 @@ fn main() {
         dump(&city);
         return;
     }
+    if args.iter().any(|a| a == "--dump-kinds") {
+        dump_kinds();
+        return;
+    }
     if let Some(i) = args.iter().position(|a| a == "--render-audio") {
         let dir = args.get(i + 1).cloned().unwrap_or("audio_out".into());
         audio::render_to_dir(&dir);
@@ -242,6 +246,20 @@ fn main() {
                 .after(crime::fade_fx),
         )
         .run();
+}
+
+/// Lists building kinds and districts of every city (used when writing cases).
+fn dump_kinds() {
+    use city::gen::CityId::*;
+    for (c, y) in [(NewOrleans, 1920), (Chicago, 1924), (Bavaria, 1934), (London, 1941), (Adelaide, 1950), (Berlin, 1961), (Bergen, 1968), (SanFrancisco, 1972), (Portland, 1978), (NewYork, 1986), (LosAngeles, 1994), (NewOrleans, 2001)] {
+        let m = city::gen::generate(c, y);
+        let mut k: std::collections::BTreeMap<String, usize> = Default::default();
+        for b in &m.buildings {
+            *k.entry(format!("{:?}", b.kind)).or_default() += 1;
+        }
+        let d: Vec<&str> = m.districts.iter().map(|d| d.name.as_str()).collect();
+        println!("{:?} {}: {:?}\n  distritos: {:?}", c, y, k, d);
+    }
 }
 
 fn dump(city: &str) {
