@@ -247,6 +247,11 @@ pub fn choice_input(mut ui: ResMut<UiState>, mut choices: ResMut<Choices>, keys:
             game.set("linger");
             true
         }
+        "sphere_again" => {
+            choices.cur = Some(crate::narrative::sphere_calls());
+            ui.open(Mode::Choice);
+            return;
+        }
         "again_yes" => {
             flow.actions.push("new_game".into());
             true

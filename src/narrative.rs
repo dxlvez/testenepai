@@ -372,6 +372,11 @@ pub fn flow_system(
                 game.player.pos = Vec2::ZERO;
                 it.opened.clear();
                 it.searched.clear();
+                rt.reset_world();
+                crt.red_sight = false;
+                crt.spawned = None;
+                crt.echo = None;
+                sim.agents.clear();
                 load.0 = true;
                 music.want = Track::Limbo;
                 rt.look_dirty = true;
@@ -472,6 +477,19 @@ pub fn flow_system(
                 let log = stay_in_timeline(&mut game, years);
                 popups.push(Popup::new(PopStyle::Mystery, format!("{} ANO{} DEPOIS", years, if years > 1 { "S" } else { "" }), game.city.upper(), log.join("\n\n")));
                 load.0 = true;
+                // the sphere keeps calling
+                choices.cur = Some(sphere_calls());
+                popups.then("choice_pending");
+            }
+            // death or a life sentence: the sphere pulls Elias back to the last temporal point
+            "temporal_reset" => {
+                if crate::save::read(0).is_some() {
+                    save.load = Some(0);
+                } else {
+                    let n = game.case_idx.max(1);
+                    flow.actions.push(format!("start_case:{}", n));
+                }
+                toasts.push("A esfera puxa você de volta ao último ponto temporal.");
             }
             "finale" => {
                 finale_choice(&game, &mut choices, &mut ui);
@@ -535,7 +553,7 @@ pub fn start_case(game: &mut Game, db: &CaseDb, n: u8, popups: &mut Popups, cs: 
     game.city = def.city;
     game.year = if same_city { def.year.max(old_year) } else { def.year };
     if old_city != def.city || (old_year - game.year).abs() > 15 || old_year > 2020 {
-        crate::economy::convert_money_on_jump(game, old_year);
+        crate::economy::convert_money_on_jump(game, old_city, old_year);
         game.player.safehouse = None;
         game.player.owned.clear();
         game.police = Police::default();
@@ -549,8 +567,7 @@ pub fn start_case(game: &mut Game, db: &CaseDb, n: u8, popups: &mut Popups, cs: 
     crt.echo = None;
     crt.red_sight = false;
     sim.agents.clear();
-    rt.carrying = None;
-    rt.in_car = false;
+    rt.reset_world();
     music.want = crate::audio::track_for_year(game.year);
     if first_time {
         game.write(format!("{} — {}. {}", def.city.upper(), game.year, def.title), false);
@@ -605,7 +622,14 @@ pub fn resolve_case(game: &mut Game, db: &CaseDb, popups: &mut Popups, choices: 
         true,
     );
     // stay or follow the thread
-    choices.cur = Some(Choice {
+    choices.cur = Some(sphere_calls());
+    popups.then("choice_pending");
+    let _ = ui;
+}
+
+/// The choice offered after a case: follow the thread or live here for a while.
+pub fn sphere_calls() -> Choice {
+    Choice {
         title: "A esfera chama".into(),
         body: "Você sente o zumbido atrás dos olhos. A próxima porta está aberta. Mas esta vida também está.".into(),
         opts: vec![
@@ -613,12 +637,15 @@ pub fn resolve_case(game: &mut Game, db: &CaseDb, popups: &mut Popups, choices: 
             ("stay:1".into(), "Ficar — viver um ano nesta linha do tempo".into()),
             ("stay:5".into(), "Ficar — cinco anos".into()),
             ("stay:10".into(), "Ficar — dez anos".into()),
-            ("linger".into(), "Continuar por aqui mais um pouco (volte ao esconderijo para seguir)".into()),
+            ("linger".into(), "Continuar por aqui mais um pouco (durma no esconderijo para seguir)".into()),
         ],
         ctx: String::new(),
-    });
-    popups.then("choice_pending");
-    let _ = ui;
+    }
+}
+
+/// True when the current case is closed and Elias is only living in this timeline.
+pub fn case_closed(game: &Game) -> bool {
+    game.phase == Phase::City && game.cases.iter().any(|c| c.id as usize == game.case_idx && c.solved)
 }
 
 trait TimelineOr {

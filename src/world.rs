@@ -105,6 +105,7 @@ pub fn load_city_system(
     db: Res<crate::cases::run::CaseDb>,
     roots: Query<Entity, With<CityRoot>>,
     agents: Query<Entity, With<AgentRoot>>,
+    (mut rt, mut it, mut cars): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>),
 ) {
     if !req.0 {
         return;
@@ -117,21 +118,41 @@ pub fn load_city_system(
         c.entity(e).despawn();
     }
     let mut m = build_map(&game);
+    // everything tied to the previous map is forgotten
+    rt.reset_world();
+    cars.spawned_for = None;
     if game.phase == crate::state::Phase::City {
+        let key = format!("{:?}:{}", game.city, game.year);
+        if game.player.map_key != key {
+            game.player.map_key = key;
+            game.player.safehouse = None;
+            game.player.owned.clear();
+            it.opened.clear();
+            it.searched.clear();
+        }
         crate::cases::run::prepare_case(&mut game, &mut m, &db);
         populate(&mut game, &mut m, &mut sim);
-        // Elias rents a room the first time he is in a city
+        // Elias rents a room the first time he is in a city (a guest room in villages)
         if game.player.safehouse.map(|s| s >= m.buildings.len()).unwrap_or(true) {
-            let rooms = m.buildings_of(BKind::Apartment);
+            let mut rooms = m.buildings_of(BKind::Apartment);
+            if rooms.is_empty() {
+                rooms = m.buildings_of(BKind::Hotel);
+            }
+            if rooms.is_empty() {
+                rooms = m.buildings_of(BKind::House);
+            }
             if !rooms.is_empty() {
-                let pick = rooms[(game.case_idx * 7 + game.year as usize) % rooms.len()];
-                game.player.safehouse = Some(pick);
-                if !m.buildings[pick].spots.iter().any(|s| s.kind == SpotKind::Bed) {
-                    let c = m.buildings[pick].center_px();
-                    let (x, y) = to_tile(c);
-                    m.add_prop(PKind::Bed, x, y, 1, 2, Some(pick));
-                    m.rebuild_prop_index();
-                }
+                game.player.safehouse = Some(rooms[(game.case_idx * 7 + game.year as usize) % rooms.len()]);
+            }
+        }
+        // make sure there is a bed to sleep / save in
+        if let Some(pick) = game.player.safehouse {
+            let has_bed = m.props.iter().any(|p| p.kind == PKind::Bed && p.building == Some(pick));
+            if !has_bed {
+                let c = m.buildings[pick].center_px();
+                let (x, y) = to_tile(c);
+                m.add_prop(PKind::Bed, x, y, 1, 2, Some(pick));
+                m.rebuild_prop_index();
             }
         }
     } else {

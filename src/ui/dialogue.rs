@@ -65,7 +65,10 @@ pub fn start_dialogue(dlg: &mut Dlg, ui: &mut UiState, sim: &mut Sim, game: &mut
     dlg.end = false;
     dlg.rng = Some(Rng::new(game.abs_minute() as u64 ^ pid as u64 * 977));
     if let Some(a) = sim.agent_mut(pid) {
-        a.state = AState::Talking;
+        // only calm people stop to talk; the tied stay tied, the police keep chasing
+        if matches!(a.state, AState::Normal | AState::Investigate { .. }) {
+            a.state = AState::Talking;
+        }
         a.chat = None;
     }
     let p = game.pop.get(pid).clone();
@@ -424,10 +427,8 @@ impl Game {
     }
 }
 
-thread_local! {
-    pub static BLACK: std::cell::RefCell<bool> = const { std::cell::RefCell::new(false) };
-    pub static SELLCAR: std::cell::RefCell<bool> = const { std::cell::RefCell::new(false) };
-}
+pub static BLACK: crate::util::Shared<bool> = crate::util::Shared::new(false);
+pub static SELLCAR: crate::util::Shared<bool> = crate::util::Shared::new(false);
 
 pub fn is_shopkeeper(p: &Person) -> bool {
     matches!(p.job, Job::Tailor | Job::Merchant | Job::Gunsmith | Job::Pharmacist | Job::Pawnbroker | Job::Forger | Job::Bartender | Job::Vendor | Job::Baker | Job::Butcher | Job::Smuggler)

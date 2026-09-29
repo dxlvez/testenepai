@@ -127,10 +127,10 @@ pub fn loot(r: &mut Rng, kind: crate::city::map::BKind, pkind: crate::city::map:
 }
 
 /// When Elias jumps to another era his cash becomes worthless antique notes.
-pub fn convert_money_on_jump(game: &mut Game, old_year: i32) {
+pub fn convert_money_on_jump(game: &mut Game, old_city: crate::city::gen::CityId, old_year: i32) {
     let m = game.player.money;
     if m > 0 {
-        let sym = match game.city.currency(old_year).trim() {
+        let sym = match old_city.currency(old_year).trim() {
             "£" => "libras",
             "RM" => "reichsmarks",
             "DM" => "marcos",

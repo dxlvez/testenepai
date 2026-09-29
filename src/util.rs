@@ -78,3 +78,23 @@ pub fn clock_str(minutes: f32) -> String {
     let m = minutes.rem_euclid(1440.0) as i32;
     format!("{:02}:{:02}", m / 60, m % 60)
 }
+
+/// A process-wide mailbox between systems. (Bevy runs systems on several
+/// threads, so `thread_local!` values written by one system may be invisible
+/// to the next.) Same `with` / `borrow` / `borrow_mut` shape as a RefCell.
+pub struct Shared<T>(std::sync::Mutex<T>);
+
+impl<T> Shared<T> {
+    pub const fn new(v: T) -> Self {
+        Shared(std::sync::Mutex::new(v))
+    }
+    pub fn with<R>(&self, f: impl FnOnce(&Self) -> R) -> R {
+        f(self)
+    }
+    pub fn borrow(&self) -> std::sync::MutexGuard<'_, T> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+    pub fn borrow_mut(&self) -> std::sync::MutexGuard<'_, T> {
+        self.borrow()
+    }
+}

@@ -170,6 +170,10 @@ pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityM
     }
     cars.list.clear();
     cars.spawned_for = Some(key);
+    if game.phase != crate::state::Phase::City {
+        // no traffic in the prologue apartment, the lab or the limbo
+        return;
+    }
     if game.year < 1915 {
         return;
     }
@@ -296,6 +300,11 @@ pub fn drive_cars(
     let Some(map) = map else { return };
     let m = &map.0;
     let dt = time.delta_secs().min(0.1);
+    rt.car_grace = (rt.car_grace - dt).max(0.0);
+    // never stay "inside" a car that no longer exists (city change, load...)
+    if rt.in_car && !cars.list.iter().any(|c| c.player) {
+        rt.in_car = false;
+    }
     if let Ok(mut v) = UNLOCK.lock() {
         for id in v.drain(..) {
             if let Some(c) = cars.list.iter_mut().find(|c| c.id == id) {
@@ -333,7 +342,7 @@ pub fn drive_cars(
                 car.speed = car.speed.clamp(-4.0, max);
                 car.heading += steer * dt * 2.2 * (car.speed / 6.0).clamp(-1.0, 1.0);
                 let _ = cam;
-                if act.just(Action::Interact) {
+                if act.just(Action::Interact) && rt.car_grace <= 0.0 {
                     // get out
                     car.player = false;
                     car.speed = 0.0;
@@ -422,7 +431,6 @@ pub fn car_interact(id: u32, game: &mut Game, sim: &mut Sim, rt: &mut PlayerRt, 
     let (has_driver, locked, mine) = info.map(|i| (i.1, i.2, i.3)).unwrap_or((false, true, false));
     if mine || (!locked && !has_driver) {
         CAR_ENTER.with(|c| *c.borrow_mut() = Some(id));
-        rt.in_car = true;
         toasts.push(format!("[{}] para sair. WASD dirige, Shift acelera.", "E"));
         return;
     }
@@ -443,13 +451,11 @@ pub fn car_interact(id: u32, game: &mut Game, sim: &mut Sim, rt: &mut PlayerRt, 
     ui.open(Mode::Choice);
 }
 
-thread_local! {
-    static CAR_CTX: std::cell::RefCell<Option<u32>> = const { std::cell::RefCell::new(None) };
-    static CAR_ENTER: std::cell::RefCell<Option<u32>> = const { std::cell::RefCell::new(None) };
-    static CAR_ACTION: std::cell::RefCell<Vec<(u32, String)>> = const { std::cell::RefCell::new(Vec::new()) };
-    /// (id, has_driver, locked, mine)
-    static CAR_INFO: std::cell::RefCell<Vec<(u32, bool, bool, bool)>> = const { std::cell::RefCell::new(Vec::new()) };
-}
+static CAR_CTX: crate::util::Shared<Option<u32>> = crate::util::Shared::new(None);
+static CAR_ENTER: crate::util::Shared<Option<u32>> = crate::util::Shared::new(None);
+static CAR_ACTION: crate::util::Shared<Vec<(u32, String)>> = crate::util::Shared::new(Vec::new());
+/// (id, has_driver, locked, mine)
+static CAR_INFO: crate::util::Shared<Vec<(u32, bool, bool, bool)>> = crate::util::Shared::new(Vec::new());
 
 #[allow(clippy::too_many_arguments)]
 pub fn handle_car_choice(id: &str, ctx: &str, game: &mut Game, sim: &mut Sim, rt: &mut PlayerRt, toasts: &mut Toasts, crimes: &mut EventWriter<CrimeEv>, sfx: &mut EventWriter<Sfx>, decal: &mut EventWriter<SpawnDecal>, lock: &mut Lockpick, ui: &mut UiState) -> bool {
@@ -493,6 +499,7 @@ pub fn car_actions(mut cars: ResMut<Cars>, mut sim: ResMut<Sim>, mut game: ResMu
             c.player = c.id == id;
         }
         rt.in_car = true;
+        rt.car_grace = 0.35;
     }
     let actions: Vec<(u32, String)> = CAR_ACTION.with(|c| c.borrow_mut().drain(..).collect());
     let Some(map) = map else { return };
@@ -520,7 +527,8 @@ pub fn car_actions(mut cars: ResMut<Cars>, mut sim: ResMut<Sim>, mut game: ResMu
                         } else if p.traits.morality > 40 {
                             ag.state = AState::Flee { from: car.pos, until: now + 25.0 };
                             ag.say("Ladrão! Ladrão!", 2.5);
-                            ag.knows_bodies.push(u32::MAX - game.police.next_id.saturating_sub(1));
+                            // the CarTheft crime gets the next id when it is processed
+                            ag.knows_bodies.push(u32::MAX - game.police.next_id);
                         } else {
                             ag.state = AState::Cower { until: now + 10.0 };
                             ag.say("Leva! Leva, não atira!", 2.5);

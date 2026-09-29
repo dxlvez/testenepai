@@ -449,7 +449,6 @@ pub fn prologue_interact(
     db: Res<CaseDb>,
     mut sfx: EventWriter<Sfx>,
     binds: Res<crate::keys::Bindings>,
-    mut read: Local<Vec<usize>>,
 ) {
     if game.phase != Phase::Prologue || ui.blocks_input() {
         return;
@@ -535,7 +534,7 @@ pub fn prologue_interact(
     }
     let Some((_, what)) = target else { return };
     if what == "go_lab" {
-        if read.len() >= 2 {
+        if game.flags.iter().filter(|f| f.starts_with("note:")).count() >= 2 {
             flow.actions.push("to_lab".into());
         } else {
             popups.push(Popup::plain("Ainda não", "Você ainda não juntou as peças. O quadro, a carta na mesa... algo aponta para um lugar."));
@@ -560,9 +559,7 @@ pub fn prologue_interact(
         let i: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
         let _k = it.next();
         let text = it.next().unwrap_or("");
-        if !read.contains(&i) {
-            read.push(i);
-        }
+        game.set(&format!("note:{}", i));
         popups.push(Popup::new(PopStyle::Evidence, "Arquivo de Elias Vale", "NOTAS", text));
         sfx.write(Sfx::Paper);
         game.write(text.to_string(), false);

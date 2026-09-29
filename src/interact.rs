@@ -58,6 +58,9 @@ fn key(b: &crate::keys::Bindings, a: Action) -> String {
 
 /// Buildings Elias may freely walk into right now.
 pub fn can_enter(m: &Map, game: &Game, b: usize, it: &Interact, (x, y): (i32, i32), sim: &Sim) -> bool {
+    if game.phase != crate::state::Phase::City {
+        return true;
+    }
     let bl = &m.buildings[b];
     if it.opened.contains(&(x, y)) || game.player.owned.contains(&b) || game.player.safehouse == Some(b) {
         return true;
@@ -92,6 +95,11 @@ pub fn find_target(
     cars: Res<crate::vehicles::Cars>,
 ) {
     let Some(map) = map else { return };
+    if game.phase != crate::state::Phase::City {
+        // the prologue / limbo have their own interactions
+        it.target = None;
+        return;
+    }
     let m = &map.0;
     let pp = game.player.pos;
     let fwd = Vec2::new(rt.facing.cos(), rt.facing.sin());
@@ -114,7 +122,7 @@ pub fn find_target(
     };
     for (i, a) in sim.agents.iter().enumerate() {
         let d = a.pos.distance(pp);
-        if d > 1.8 {
+        if d > 1.8 || (a.in_car && matches!(a.state, AState::Dead)) {
             continue;
         }
         let p = game.pop.get(a.pid);
@@ -234,7 +242,7 @@ pub fn do_interact(
     (mut decal_ev, mut lock): (EventWriter<SpawnDecal>, ResMut<Lockpick>),
 ) {
     let Some(mut map) = map else { return };
-    if ui.blocks_input() {
+    if ui.blocks_input() || game.phase != crate::state::Phase::City {
         return;
     }
     let pp = game.player.pos;
@@ -411,7 +419,11 @@ pub fn do_interact(
         Target::Container(pi) => {
             let prop = map.0.props[pi].clone();
             it.searched.push(pi);
-            let b = prop.building.unwrap_or(0);
+            let Some(b) = prop.building else {
+                // street bins and crates belong to nobody
+                toasts.push(if prop.bodies.is_empty() { "Só lixo molhado." } else { "Há um corpo aqui dentro." });
+                return;
+            };
             let bl = &map.0.buildings[b];
             let wealth = map.0.districts.get(bl.district).map(|d| d.wealth).unwrap_or(0.5);
             let mut r = crate::util::Rng::new(pi as u64 * 31 + game.timeline as u64);
@@ -474,18 +486,17 @@ pub fn do_interact(
             ui.open(Mode::Choice);
         }
         Target::Bed(_) => {
-            choices.cur = Some(Choice {
-                title: "Seu quarto".into(),
-                body: "A chuva bate no vidro. Aqui ninguém te procura.".into(),
-                opts: vec![
-                    ("sleep8".into(), "Dormir até de manhã (salva o jogo)".into()),
-                    ("sleep2".into(), "Cochilar 2 horas".into()),
-                    ("wait_night".into(), "Esperar anoitecer".into()),
-                    ("save".into(), "Salvar sem dormir".into()),
-                    ("cancel".into(), "Voltar".into()),
-                ],
-                ctx: String::new(),
-            });
+            let mut opts: Vec<(String, String)> = vec![
+                ("sleep8".into(), "Dormir até de manhã (salva o jogo)".into()),
+                ("sleep2".into(), "Cochilar 2 horas".into()),
+                ("wait_night".into(), "Esperar anoitecer".into()),
+                ("save".into(), "Salvar sem dormir".into()),
+            ];
+            if crate::narrative::case_closed(&game) {
+                opts.insert(0, ("sphere_again".into(), "Fechar os olhos e ouvir a esfera".into()));
+            }
+            opts.push(("cancel".into(), "Voltar".into()));
+            choices.cur = Some(Choice { title: "Seu quarto".into(), body: "A chuva bate no vidro. Aqui ninguém te procura.".into(), opts, ctx: String::new() });
             ui.open(Mode::Choice);
         }
         Target::NewsStand => {

@@ -142,8 +142,7 @@ pub fn police_hunt(
                 hunt.unseen_for = 0.0;
             }
             // hiding spot check: an officer searching right next to Elias' container may find him
-            if let Some(pi) = rt.hidden_in {
-                let c = m.props[pi].center();
+            if let Some(c) = rt.hidden_in.and_then(|pi| m.props.get(pi)).map(|p| p.center()) {
                 if a.pos.distance(c) < 1.3 && crate::util::hashf(a.pid as i32, (now * 3.0) as i32, 9) < dt * 0.4 {
                     rt.hidden_in = None;
                     a.state = AState::Chase;
@@ -302,6 +301,13 @@ pub fn fugitive_system(
         hunt.fugitive_lost += dt;
         if hunt.fugitive_lost > 12.0 {
             hunt.fugitive = None;
+            // out of sight they make it to the hideout and lie low there
+            let hp = m.nearest_open(m.buildings[hideout].center_px());
+            let a = &mut sim.agents[idx];
+            a.state = AState::Normal;
+            a.pos = hp;
+            a.path.clear();
+            a.pinned = Some(hp);
             toasts.push(format!("{} sumiu nas ruas. Talvez volte ao esconderijo.", game.pop.get(pid).first));
             game.set(&format!("hideout:{}:{}", pid, hideout));
         }

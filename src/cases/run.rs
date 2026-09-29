@@ -318,9 +318,17 @@ pub fn apply_outcome(game: &mut Game, def: &CaseDef, pi: usize, correct: bool, l
         game.set(f);
     }
     // closures
-    for k in &o.close {
-        out.push(format!("Um(a) {} fechou as portas.", k.label()));
-        game.set(&format!("close:{:?}", k));
+    if !o.close.is_empty() {
+        let m = crate::city::gen::generate(game.city, year);
+        for k in &o.close {
+            let city = game.city;
+            if let Some(&b) = m.buildings_of(*k).iter().find(|b| !game.closed.iter().any(|(c, x, _)| *c == city && x == *b)) {
+                game.closed.push((city, b, year));
+                let name = if m.buildings[b].name.is_empty() { k.label().to_string() } else { m.buildings[b].name.clone() };
+                out.push(format!("{} fechou as portas.", name));
+            }
+            game.set(&format!("close:{:?}", k));
+        }
     }
     // ripple: random people connected to the cast change jobs / leave / die
     let mut rng = Rng::new(0xA17E + def.id as u64 * 7 + game.timeline as u64 + if correct { 1 } else { 0 });

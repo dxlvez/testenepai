@@ -32,6 +32,22 @@ pub struct PlayerRt {
     pub hurt_flash: f32,
     pub weapon_out: bool,
     pub hold_t: f32,
+    /// seconds during which the interact key can't take Elias out of a car he just entered
+    pub car_grace: f32,
+}
+
+impl PlayerRt {
+    /// Forget everything tied to the previous map (car, carried body, hiding spot).
+    pub fn reset_world(&mut self) {
+        self.in_car = false;
+        self.carrying = None;
+        self.dragging = false;
+        self.hidden_in = None;
+        self.weapon_out = false;
+        self.aiming = false;
+        self.car_grace = 0.0;
+        self.action_lock = 0.0;
+    }
 }
 
 pub fn elias_look(outfit: crate::items::Outfit, age: f32) -> Look {

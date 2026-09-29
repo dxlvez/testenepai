@@ -106,6 +106,9 @@ pub struct PlayerData {
     pub mind_years: f32,
     pub safehouse: Option<usize>,
     pub owned: Vec<usize>,
+    /// "city:year" of the map that `safehouse` / `owned` / opened doors refer to
+    #[serde(default)]
+    pub map_key: String,
     pub car: Option<u32>,
     pub hunger: f32,
     pub sleep: f32,
@@ -135,6 +138,7 @@ impl Default for PlayerData {
             body_age: 34.0,
             mind_years: 0.0,
             safehouse: None,
+            map_key: String::new(),
             owned: Vec::new(),
             car: None,
             hunger: 0.0,

@@ -690,7 +690,7 @@ pub fn police_system(
     crt.police_tick -= dt;
     if crt.police_tick <= 0.0 {
         crt.police_tick = 0.5;
-        let bodies: Vec<(usize, Pid, Vec2)> = sim.agents.iter().enumerate().filter(|(_, a)| a.state == AState::Dead).map(|(i, a)| (i, a.pid, a.pos)).collect();
+        let bodies: Vec<(usize, Pid, Vec2)> = sim.agents.iter().enumerate().filter(|(_, a)| a.state == AState::Dead && !a.in_car).map(|(i, a)| (i, a.pid, a.pos)).collect();
         for (_, bpid, bpos) in bodies {
             let already = game.police.crimes.iter().any(|c| c.victim == Some(bpid) && c.discovered);
             if already {
@@ -800,7 +800,7 @@ pub fn police_system(
                 "PRESO",
                 "A cela cheira a urina e ferrugem. No terceiro dia, quando o juiz lê seu nome, você ouve a esfera zumbindo atrás da parede. A cela se dissolve.",
             ));
-            game.set("arrest_reset");
+            popups.then("temporal_reset");
         } else {
             game.player.money = (game.player.money - fine).max(0);
             game.player.inv.retain(|i| !matches!(i, Item::Weapon(_) | Item::Ammo(_) | Item::Drug(_)));
@@ -842,9 +842,7 @@ pub fn sim_rumor(game: &mut Game, text: String, about: Option<Pid>, first: Pid) 
     RUMOR_QUEUE.with(|q| q.borrow_mut().push((text, about, first)));
 }
 
-thread_local! {
-    pub static RUMOR_QUEUE: std::cell::RefCell<Vec<(String, Option<Pid>, Pid)>> = const { std::cell::RefCell::new(Vec::new()) };
-}
+pub static RUMOR_QUEUE: crate::util::Shared<Vec<(String, Option<Pid>, Pid)>> = crate::util::Shared::new(Vec::new());
 
 pub fn flush_rumors(mut sim: ResMut<Sim>, game: Res<Game>) {
     let items: Vec<(String, Option<Pid>, Pid)> = RUMOR_QUEUE.with(|q| q.borrow_mut().drain(..).collect());
@@ -911,6 +909,7 @@ pub fn player_death(game: Res<Game>, mut crt: ResMut<CrimeRt>, mut popups: ResMu
         *done = true;
         crt.dead_time = Some(0.0);
         popups.push(crate::ui::screens::Popup::death());
+        popups.then("temporal_reset");
     }
     if game.player.health > 0.0 {
         *done = false;
