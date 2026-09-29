@@ -148,6 +148,7 @@ fn main() {
         .init_resource::<world::SpawnAgents>()
         .init_resource::<glue::VenueState>()
         .init_resource::<glue::PhotoMode>()
+        .init_resource::<render::birds::Birds>()
         .add_event::<audio::Sfx>()
         .add_event::<crime::CrimeEv>()
         .add_event::<crime::SpawnDecal>()
@@ -271,6 +272,7 @@ fn main() {
                 .chain()
                 .after(crime::fade_fx),
         );
+    app.add_systems(Update, (render::birds::spawn_birds, render::birds::animate_birds).chain().after(crime::player_death));
     embed_models(&mut app);
     render::lib3d::register_embedded(&mut app);
     app.run();
