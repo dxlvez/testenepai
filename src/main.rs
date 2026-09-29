@@ -64,6 +64,14 @@ fn main() {
         dump(&city);
         return;
     }
+    if args.iter().any(|a| a == "--check-cases") {
+        let errs = cases::run::validate_all();
+        for e in &errs {
+            println!("{}", e);
+        }
+        println!("{} casos, {} problemas", cases::all_cases().len(), errs.len());
+        std::process::exit(if errs.is_empty() { 0 } else { 1 });
+    }
     if args.iter().any(|a| a == "--dump-kinds") {
         dump_kinds();
         return;

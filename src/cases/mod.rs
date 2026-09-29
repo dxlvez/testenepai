@@ -2,6 +2,11 @@
 
 pub mod defs;
 pub mod era1;
+pub mod era2;
+pub mod era3;
+pub mod era4;
+pub mod era5;
+pub mod era6;
 pub mod run;
 
 use serde::{Deserialize, Serialize};
@@ -49,6 +54,11 @@ pub fn redness(game: &crate::state::Game) -> f32 {
 pub fn all_cases() -> Vec<defs::CaseDef> {
     let mut v = vec![era1::case01()];
     v.extend(era1::rest());
+    v.extend(era2::cases());
+    v.extend(era3::cases());
+    v.extend(era4::cases());
+    v.extend(era5::cases());
+    v.extend(era6::cases());
     v.sort_by_key(|c| c.id);
     v
 }

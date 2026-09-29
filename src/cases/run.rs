@@ -54,12 +54,12 @@ pub fn resolve_place(p: Place, m: &Map, game: &Game, prog: &CaseProgress, rng: &
             b.map(|b| inside(b, rng)).unwrap_or(m.spawn)
         }
         Place::Park | Place::Cemetery | Place::Woods => {
-            let name_has = match p {
-                Place::Park => "Pra",
-                Place::Cemetery => "Cemit",
-                _ => "Bosque",
+            let keys: &[&str] = match p {
+                Place::Park => &["Praça", "Parque", "Park", "Square", "Panhandle", "Byparken"],
+                Place::Cemetery => &["Cemit", "Friedhof"],
+                _ => &["Bosque", "Floresta", "Colinas", "Praia"],
             };
-            let d = m.districts.iter().find(|d| d.name.contains(name_has) || (matches!(p, Place::Park) && d.name.contains("Parque")));
+            let d = m.districts.iter().find(|d| keys.iter().any(|k| d.name.contains(k)));
             if let Some(d) = d {
                 for _ in 0..40 {
                     let x = d.x + rng.range(1, d.w - 1);
@@ -459,4 +459,121 @@ pub fn clue_mesh(look: Look3d) -> crate::render::mesh::MB {
         }
     }
     m
+}
+
+/// Consistency check of every case definition (indices, reachability of clues).
+pub fn validate_all() -> Vec<String> {
+    use crate::cases::defs::*;
+    let mut errs = Vec::new();
+    let cases = crate::cases::all_cases();
+    let mut ids: Vec<u8> = Vec::new();
+    for c in &cases {
+        let tag = format!("caso {:02} '{}'", c.id, c.title);
+        let mut e = |m: String| errs.push(format!("{}: {}", tag, m));
+        if ids.contains(&c.id) {
+            e("id repetido".into());
+        }
+        ids.push(c.id);
+        let nc = c.cast.len();
+        let nk = c.clues.len();
+        let place_ok = |p: &Place| match p {
+            Place::HomeOf(i) | Place::WorkOf(i) => (*i as usize) < nc,
+            _ => true,
+        };
+        if !place_ok(&c.start) {
+            e("start aponta para elenco inexistente".into());
+        }
+        if (c.culprit as usize) >= nc {
+            e("culprit fora do elenco".into());
+        }
+        if c.method as usize >= c.methods.len() || c.motive as usize >= c.motives.len() || c.anomaly as usize >= c.anomalies.len() {
+            e("method/motive/anomaly fora das opções".into());
+        }
+        if c.anomaly == 0 {
+            e("anomalia correta não pode ser a 0".into());
+        }
+        for (a, b) in c.threads {
+            if *a as usize >= nc || *b as usize >= nc {
+                e(format!("thread ({},{}) fora do elenco", a, b));
+            }
+        }
+        let mut revealed = vec![false; nk];
+        for (ci, p) in c.cast.iter().enumerate() {
+            if !place_ok(&p.home) {
+                e(format!("home de {} inválida", p.first));
+            }
+            let keys: Vec<&str> = p.topics.iter().map(|t| t.key).collect();
+            for t in &p.topics {
+                for r in t.reveals {
+                    if *r as usize >= nk {
+                        e(format!("{}/{} revela pista {} inexistente", p.first, t.key, r));
+                    } else {
+                        revealed[*r as usize] = true;
+                    }
+                }
+                if let Some(b) = t.breaker {
+                    if b as usize >= nk {
+                        e(format!("{}/{} breaker {} inexistente", p.first, t.key, b));
+                    }
+                }
+                match t.req {
+                    Req::Clue(i) if i as usize >= nk => e(format!("{}/{} req pista {} inexistente", p.first, t.key, i)),
+                    Req::Both(a, b) if a as usize >= nk || b as usize >= nk => e(format!("{}/{} req Both inexistente", p.first, t.key)),
+                    Req::Topic(k) if !keys.contains(&k) => e(format!("{}/{} req tópico '{}' inexistente", p.first, t.key, k)),
+                    _ => {}
+                }
+            }
+            if p.dead && !p.topics.is_empty() {
+                e(format!("{} está morto mas tem tópicos (idx {})", p.first, ci));
+            }
+        }
+        for ec in &c.echoes {
+            if !place_ok(&ec.place) {
+                e("eco com lugar inválido".into());
+            }
+            if ec.unlocks as usize >= nk {
+                e(format!("eco desbloqueia pista {} inexistente", ec.unlocks));
+            } else {
+                revealed[ec.unlocks as usize] = true;
+            }
+        }
+        for (k, cl) in c.clues.iter().enumerate() {
+            for p in cl.points {
+                if *p as usize >= nc {
+                    e(format!("pista {} aponta para elenco {} inexistente", k, p));
+                }
+            }
+            match cl.kind {
+                ClueKind::Testimony => {
+                    if !revealed[k] {
+                        e(format!("depoimento {} '{}' nunca é revelado", k, cl.name));
+                    }
+                }
+                ClueKind::Temporal => {
+                    if !revealed[k] {
+                        e(format!("pista temporal {} '{}' sem eco", k, cl.name));
+                    }
+                    if cl.place.is_none() {
+                        e(format!("pista temporal {} sem lugar", k));
+                    }
+                }
+                _ => {
+                    match &cl.place {
+                        None => e(format!("pista {} '{}' sem lugar", k, cl.name)),
+                        Some(p) if !place_ok(p) => e(format!("pista {} lugar inválido", k)),
+                        _ => {}
+                    }
+                }
+            }
+        }
+        for (i, f) in c.on_true.fates.iter().chain(c.on_false.fates.iter()) {
+            if *i as usize >= nc {
+                e(format!("destino para elenco {} inexistente", i));
+            }
+            if !["jailed", "dead", "left_city", "police", "criminal", "grateful", "survived", "journalist", "hates_elias"].contains(f) {
+                e(format!("destino '{}' desconhecido", f));
+            }
+        }
+    }
+    errs
 }
