@@ -48,6 +48,8 @@ impl Lib {
             // regional / luxury pieces only where they belong
             .filter(|e| want_chinese == e.style.contains("chinese") || category == "tree" || category == "grass")
             .filter(|e| !(e.style.contains("gothic") && !matches!(style, Some("gothic") | Some("rich"))))
+            // painted farmhouse / school furniture only belongs in homes and offices
+            .filter(|e| !((e.id.contains("painted") || e.id.contains("School")) && matches!(style, Some("bar") | Some("rich") | Some("gothic"))))
             .collect();
         if ok.is_empty() {
             return None;

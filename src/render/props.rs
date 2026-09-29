@@ -51,11 +51,12 @@ pub fn build(kind: PKind, w: f32, h: f32, tint: f32, year: i32, seed: u32, tree:
                 }
                 1 => {
                     // cash register
-                    let col = if year < 1950 { c3([0.72, 0.58, 0.28]) } else { c3([0.3, 0.3, 0.32]) };
-                    s.cuboid(v(0.2, 1.1, 0.25), v(0.8, 1.35, h - 0.25), col);
-                    s.cuboid(v(0.25, 1.35, 0.35), v(0.75, 1.5, 0.6), col);
+                    // a compact register (aged brass before the war), not a crate on the bar
+                    let col = if year < 1950 { c3([0.42, 0.3, 0.14]) } else { c3([0.22, 0.22, 0.24]) };
+                    s.cuboid(v(0.35, 1.1, 0.35), v(0.65, 1.28, 0.62), col);
+                    s.cuboid(v(0.38, 1.28, 0.5), v(0.62, 1.38, 0.6), col);
                     for k in 0..4 {
-                        s.cylinder(v(0.3 + k as f32 * 0.12, 1.35, 0.3), 0.02, 0.03, 6, c3([0.9, 0.88, 0.8]));
+                        s.cylinder(v(0.4 + k as f32 * 0.06, 1.28, 0.4), 0.012, 0.02, 6, c3([0.85, 0.82, 0.74]));
                     }
                 }
                 2 => {

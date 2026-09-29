@@ -1392,3 +1392,37 @@ impl RuinRoof for MB {
 pub fn tree_kind_default() -> TreeKind {
     TreeKind::Oak
 }
+
+/// Warm ceiling light that follows Elias into whatever building he is in, so
+/// interiors read as lamp-lit rooms instead of blue night shade.
+#[derive(Component)]
+pub struct InteriorLight;
+
+pub fn interior_light(
+    mut c: Commands,
+    game: Res<crate::state::Game>,
+    map: Option<Res<crate::world::CityMap>>,
+    env: Res<crate::env::EnvState>,
+    mut q: Query<(&mut PointLight, &mut Transform), With<InteriorLight>>,
+) {
+    let Ok((mut pl, mut tr)) = q.single_mut() else {
+        c.spawn((
+            InteriorLight,
+            PointLight { intensity: 0.0, range: 12.0, color: Color::srgb(1.0, 0.8, 0.55), shadows_enabled: false, ..default() },
+            Transform::from_xyz(0.0, 2.5, 0.0),
+        ));
+        return;
+    };
+    let inside = map.as_ref().and_then(|m| m.0.building_at(game.player.pos).map(|b| &m.0.buildings[b]));
+    let want = match inside {
+        Some(b) => {
+            let cp = b.center_px();
+            tr.translation = Vec3::new(cp.x, 2.6, cp.y);
+            pl.range = (b.w.max(b.h) as f32 * 0.9).clamp(6.0, 18.0);
+            (60_000.0 + env.darkness.clamp(0.0, 1.0) * 140_000.0) * (b.w * b.h) as f32 / 40.0
+        }
+        None => 0.0,
+    };
+    let want = want.min(400_000.0);
+    pl.intensity += (want - pl.intensity) * 0.15;
+}

@@ -2820,5 +2820,304 @@
   "triangles": 41046,
   "bytes": 1979848,
   "source": "tree_stump_01"
+ },
+ {
+  "id": "horse_chestnut",
+  "file": "horse_chestnut.glb",
+  "category": "horse",
+  "size": [
+   0.742,
+   1.836,
+   2.769
+  ],
+  "min_year": 1920,
+  "max_year": 1999,
+  "license": "CC0 1.0",
+  "author": "Lyndon Daniels (model, Realtime Rancher's pack), ChadM/OpenGameArt (rig); animations, mane/tail skinning, coat recolours: RED THREAD (CC0)",
+  "source_url": "https://opengameart.org/content/rigged-horse",
+  "clips": {
+   "idle": 1,
+   "walk": 3,
+   "trot": 2,
+   "gallop": 0
+  },
+  "clip_seconds": {
+   "idle": 5.0,
+   "walk": 1.0,
+   "trot": 0.667,
+   "gallop": 0.533
+  },
+  "walk_speed": 1.22,
+  "trot_speed": 3.15,
+  "gallop_speed": 5.75,
+  "chest": [
+   0.0,
+   1.05,
+   -0.88
+  ],
+  "withers_height": 1.6,
+  "style": "draft chestnut, flaxen mane",
+  "triangles": 13642,
+  "bytes": 1235824
+ },
+ {
+  "id": "horse_bay",
+  "file": "horse_bay.glb",
+  "category": "horse",
+  "size": [
+   0.742,
+   1.836,
+   2.769
+  ],
+  "min_year": 1920,
+  "max_year": 1999,
+  "license": "CC0 1.0",
+  "author": "Lyndon Daniels (model, Realtime Rancher's pack), ChadM/OpenGameArt (rig); animations, mane/tail skinning, coat recolours: RED THREAD (CC0)",
+  "source_url": "https://opengameart.org/content/rigged-horse",
+  "clips": {
+   "idle": 1,
+   "walk": 3,
+   "trot": 2,
+   "gallop": 0
+  },
+  "clip_seconds": {
+   "idle": 5.0,
+   "walk": 1.0,
+   "trot": 0.667,
+   "gallop": 0.533
+  },
+  "walk_speed": 1.22,
+  "trot_speed": 3.15,
+  "gallop_speed": 5.75,
+  "chest": [
+   0.0,
+   1.05,
+   -0.88
+  ],
+  "withers_height": 1.6,
+  "style": "draft bay, dark mane",
+  "triangles": 13642,
+  "bytes": 973348
+ },
+ {
+  "id": "horse_black",
+  "file": "horse_black.glb",
+  "category": "horse",
+  "size": [
+   0.742,
+   1.836,
+   2.769
+  ],
+  "min_year": 1920,
+  "max_year": 1999,
+  "license": "CC0 1.0",
+  "author": "Lyndon Daniels (model, Realtime Rancher's pack), ChadM/OpenGameArt (rig); animations, mane/tail skinning, coat recolours: RED THREAD (CC0)",
+  "source_url": "https://opengameart.org/content/rigged-horse",
+  "clips": {
+   "idle": 1,
+   "walk": 3,
+   "trot": 2,
+   "gallop": 0
+  },
+  "clip_seconds": {
+   "idle": 5.0,
+   "walk": 1.0,
+   "trot": 0.667,
+   "gallop": 0.533
+  },
+  "walk_speed": 1.22,
+  "trot_speed": 3.15,
+  "gallop_speed": 5.75,
+  "chest": [
+   0.0,
+   1.05,
+   -0.88
+  ],
+  "withers_height": 1.6,
+  "style": "draft black",
+  "triangles": 13642,
+  "bytes": 926180
+ },
+ {
+  "id": "horse_grey",
+  "file": "horse_grey.glb",
+  "category": "horse",
+  "size": [
+   0.742,
+   1.836,
+   2.769
+  ],
+  "min_year": 1920,
+  "max_year": 1999,
+  "license": "CC0 1.0",
+  "author": "Lyndon Daniels (model, Realtime Rancher's pack), ChadM/OpenGameArt (rig); animations, mane/tail skinning, coat recolours: RED THREAD (CC0)",
+  "source_url": "https://opengameart.org/content/rigged-horse",
+  "clips": {
+   "idle": 1,
+   "walk": 3,
+   "trot": 2,
+   "gallop": 0
+  },
+  "clip_seconds": {
+   "idle": 5.0,
+   "walk": 1.0,
+   "trot": 0.667,
+   "gallop": 0.533
+  },
+  "walk_speed": 1.22,
+  "trot_speed": 3.15,
+  "gallop_speed": 5.75,
+  "chest": [
+   0.0,
+   1.05,
+   -0.88
+  ],
+  "withers_height": 1.6,
+  "style": "draft dapple grey",
+  "triangles": 13642,
+  "bytes": 1273696
+ },
+ {
+  "id": "wagon_farm",
+  "file": "wagon_farm.glb",
+  "category": "wagon",
+  "size": [
+   1.866,
+   2.0,
+   5.351
+  ],
+  "min_year": 1920,
+  "max_year": 1960,
+  "style": "rural farm/produce wagon, single horse in shafts",
+  "hitch": [
+   0.0,
+   1.05,
+   -3.8
+  ],
+  "shaft_tips": [
+   [
+    -0.55,
+    1.04,
+    -3.67
+   ],
+   [
+    0.55,
+    1.04,
+    -3.67
+   ]
+  ],
+  "license": "CC0 1.0",
+  "author": "RED THREAD (procedural bpy model); textures Poly Haven (CC0)",
+  "source_url": "https://polyhaven.com (CC0 textures: weathered_planks, rough_wood, dark_wood, rusty_metal_02, brown_leather, fabric_leather_02, distressed_painted_planks)",
+  "triangles": 6840,
+  "bytes": 656452
+ },
+ {
+  "id": "wagon_delivery",
+  "file": "wagon_delivery.glb",
+  "category": "wagon",
+  "size": [
+   1.83,
+   2.49,
+   5.621
+  ],
+  "min_year": 1920,
+  "max_year": 1935,
+  "style": "urban enclosed delivery van (bakery/milk/laundry); material \"paint\" = body panels (recolour via base colour)",
+  "hitch": [
+   0.0,
+   1.05,
+   -4.0
+  ],
+  "shaft_tips": [
+   [
+    -0.55,
+    1.04,
+    -4.02
+   ],
+   [
+    0.55,
+    1.04,
+    -4.02
+   ]
+  ],
+  "license": "CC0 1.0",
+  "author": "RED THREAD (procedural bpy model); textures Poly Haven (CC0)",
+  "source_url": "https://polyhaven.com (CC0 textures: weathered_planks, rough_wood, dark_wood, rusty_metal_02, brown_leather, fabric_leather_02, distressed_painted_planks)",
+  "triangles": 7680,
+  "bytes": 853784
+ },
+ {
+  "id": "carriage_buggy",
+  "file": "carriage_buggy.glb",
+  "category": "carriage",
+  "size": [
+   1.588,
+   2.052,
+   4.659
+  ],
+  "min_year": 1920,
+  "max_year": 1935,
+  "style": "doctor's top buggy, black lacquer (material \"paint\"), leather calash top",
+  "hitch": [
+   0.0,
+   1.05,
+   -3.35
+  ],
+  "shaft_tips": [
+   [
+    -0.47,
+    1.04,
+    -3.37
+   ],
+   [
+    0.47,
+    1.04,
+    -3.37
+   ]
+  ],
+  "license": "CC0 1.0",
+  "author": "RED THREAD (procedural bpy model); textures Poly Haven (CC0)",
+  "source_url": "https://polyhaven.com (CC0 textures: weathered_planks, rough_wood, dark_wood, rusty_metal_02, brown_leather, fabric_leather_02, distressed_painted_planks)",
+  "triangles": 7148,
+  "bytes": 827332
+ },
+ {
+  "id": "car_muscle_1960s",
+  "file": "car_muscle_1960s.glb",
+  "category": "car",
+  "body": "coupe",
+  "size": [
+   1.826,
+   1.471,
+   4.848
+  ],
+  "min_year": 1966,
+  "max_year": 1999,
+  "style": "late-1960s American muscle fastback (GTO/Mustang type); paint default red",
+  "license": "CC-BY 3.0",
+  "author": "BrightRetro (model & textures, from Wii game Build'n Race; credit \"BrightRetro\"); materials/police light bar: RED THREAD",
+  "source_url": "https://opengameart.org/content/muscle-car-3d-model",
+  "triangles": 5119,
+  "bytes": 398092
+ },
+ {
+  "id": "car_police_1970s",
+  "file": "car_police_1970s.glb",
+  "category": "car",
+  "body": "police",
+  "size": [
+   1.826,
+   1.641,
+   4.848
+  ],
+  "min_year": 1968,
+  "max_year": 1985,
+  "style": "highway-patrol muscle coupe with red/blue gumball light bar; paint default dark navy",
+  "license": "CC-BY 3.0",
+  "author": "BrightRetro (model & textures, from Wii game Build'n Race; credit \"BrightRetro\"); materials/police light bar: RED THREAD",
+  "source_url": "https://opengameart.org/content/muscle-car-3d-model",
+  "triangles": 5343,
+  "bytes": 451428
  }
 ]
