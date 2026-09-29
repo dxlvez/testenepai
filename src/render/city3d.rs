@@ -25,6 +25,17 @@ pub struct Mats {
     pub plaster: Handle<StandardMaterial>,
     pub roof: Handle<StandardMaterial>,
     pub roof_flat: Handle<StandardMaterial>,
+    pub brick_yellow: Handle<StandardMaterial>,
+    pub stone_wall: Handle<StandardMaterial>,
+    pub siding: Handle<StandardMaterial>,
+    pub slate: Handle<StandardMaterial>,
+    pub grass: Handle<StandardMaterial>,
+    pub dirt: Handle<StandardMaterial>,
+    pub sand: Handle<StandardMaterial>,
+    pub gravel: Handle<StandardMaterial>,
+    pub floor_tiles: Handle<StandardMaterial>,
+    pub wallpaper: Handle<StandardMaterial>,
+    pub leather: Handle<StandardMaterial>,
     pub furn: Handle<StandardMaterial>,
     pub fabric: Handle<StandardMaterial>,
     pub metal: Handle<StandardMaterial>,
@@ -65,6 +76,17 @@ pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex) -> Mats {
         plaster: base(mats, &tex.plaster, 0.9, 0.25),
         roof: base(mats, &tex.tiles, 0.7, 0.3),
         roof_flat: base(mats, &tex.asphalt, 0.85, 0.25),
+        brick_yellow: base(mats, &tex.brick_yellow, 0.88, 0.25),
+        stone_wall: base(mats, &tex.stone, 0.8, 0.3),
+        siding: base(mats, &tex.siding, 0.7, 0.3),
+        slate: base(mats, &tex.slate, 0.45, 0.4),
+        grass: base(mats, &tex.grass, 0.9, 0.2),
+        dirt: base(mats, &tex.dirt, 0.95, 0.2),
+        sand: base(mats, &tex.sand, 0.95, 0.2),
+        gravel: base(mats, &tex.gravel, 0.9, 0.25),
+        floor_tiles: base(mats, &tex.floor_tiles, 0.25, 0.5),
+        wallpaper: base(mats, &tex.wallpaper, 0.85, 0.2),
+        leather: base(mats, &tex.leather, 0.5, 0.4),
         furn: base(mats, &tex.grain, 0.6, 0.35),
         fabric: base(mats, &tex.fabric, 0.95, 0.15),
         metal: mats.add(StandardMaterial { base_color: Color::WHITE, metallic: 0.8, perceptual_roughness: 0.35, cull_mode: None, ..default() }),
@@ -180,6 +202,56 @@ fn facade(b: &Building, s: &Style) -> [f32; 3] {
     [base[0] * k, base[1] * k, base[2] * k]
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum WallKind {
+    Brick,
+    YellowBrick,
+    Stone,
+    Siding,
+    Plaster,
+}
+
+fn wall_kind(b: &Building, s: &Style) -> WallKind {
+    let h = hash2(b.x, b.y, 81);
+    if matches!(b.kind, BKind::Police | BKind::Bank | BKind::Church | BKind::Hospital | BKind::Station | BKind::Newspaper) && !matches!(s.arch, Arch::Wooden | Arch::Village) {
+        return WallKind::Stone;
+    }
+    match s.arch {
+        Arch::Terrace => {
+            if h % 3 == 0 {
+                WallKind::Brick
+            } else {
+                WallKind::YellowBrick
+            }
+        }
+        Arch::Brick | Arch::HighRise => {
+            if h % 5 == 0 {
+                WallKind::Stone
+            } else if h % 5 == 1 {
+                WallKind::YellowBrick
+            } else {
+                WallKind::Brick
+            }
+        }
+        Arch::Wooden | Arch::Victorian => WallKind::Siding,
+        Arch::Creole => {
+            if h % 4 == 0 {
+                WallKind::Brick
+            } else {
+                WallKind::Plaster
+            }
+        }
+        Arch::Stone => {
+            if h % 3 == 0 {
+                WallKind::Plaster
+            } else {
+                WallKind::Stone
+            }
+        }
+        _ => WallKind::Plaster,
+    }
+}
+
 pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &Map, year: i32, vis: &mut CityVis) {
     let root = c.spawn((CityRoot, Transform::default(), Visibility::default(), Name::new("city"))).id();
     vis.buildings.clear();
@@ -195,6 +267,11 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
             let mut road = MB::new();
             let mut stone = MB::new();
             let mut walk = MB::new();
+            let mut grass_mb = MB::new();
+            let mut dirt_mb = MB::new();
+            let mut sand_mb = MB::new();
+            let mut gravel_mb = MB::new();
+            let mut tile_floor = MB::new();
             let mut matte = MB::new();
             let mut floor = MB::new();
             let mut water = MB::new();
@@ -206,7 +283,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                     let n = hashf(x, y, 1) * 0.08;
                     match m.get(x, y) {
                         Tile::Road => {
-                            let col = if modern { [0.14 + n, 0.14 + n, 0.15 + n] } else { [0.26 + n, 0.25 + n, 0.25 + n] };
+                            let col = if modern { [0.95 + n, 0.95 + n, 0.95 + n] } else { [1.0 + n, 1.0 + n, 1.0 + n] };
                             road.floor(fx, fz, fx + 1.0, fz + 1.0, 0.0, c3(col));
                             if modern && hash2(x, y, 3) % 2 == 0 {
                                 let gy = (y - crate::city::gen::RAIL) % s.py;
@@ -221,7 +298,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             }
                         }
                         Tile::Sidewalk | Tile::Plaza => {
-                            let col = if m.get(x, y) == Tile::Plaza { [0.38 + n, 0.35 + n, 0.32 + n] } else if s.arch == Arch::Colonial { [0.45 + n, 0.4 + n, 0.33 + n] } else { [0.33 + n, 0.32 + n, 0.31 + n] };
+                            let col = if m.get(x, y) == Tile::Plaza { [1.05 + n, 1.0 + n, 0.92 + n] } else if s.arch == Arch::Colonial { [1.15 + n, 1.05 + n, 0.9 + n] } else { [1.0 + n, 1.0 + n, 1.0 + n] };
                             walk.cuboid(Vec3::new(fx, -0.1, fz), Vec3::new(fx + 1.0, 0.12, fz + 1.0), c3(col));
                             // graffiti tags and trash in the 80s/90s
                             if s.graffiti && hash2(x, y, 13) % 29 == 0 {
@@ -229,17 +306,21 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             }
                         }
                         Tile::Alley => matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.03, c3([0.2 + n, 0.19 + n, 0.18 + n])),
-                        Tile::Grass => matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3([grass[0] + n, grass[1] + n, grass[2] + n])),
-                        Tile::Sand => matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.01, c3([0.7 + n, 0.64 + n, 0.5 + n])),
+                        Tile::Grass => {
+                            // the texture carries the colour; the city's grass tone nudges it (dry Adelaide, lush Bergen)
+                            let k = [0.75 + grass[0] * 0.8 + n, 0.8 + grass[1] * 0.5 + n, 0.75 + grass[2] * 0.8 + n];
+                            grass_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(if s.snow { [1.6, 1.6, 1.7] } else { k }));
+                        }
+                        Tile::Sand => sand_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.01, c3([0.95 + n, 0.95 + n, 0.95 + n])),
                         Tile::Dirt => {
-                            let col = if s.snow && s.arch == Arch::Village { [0.55 + n, 0.53 + n, 0.52 + n] } else { [0.24 + n, 0.19 + n, 0.14 + n] };
-                            matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(col));
+                            let col = if s.snow && s.arch == Arch::Village { [1.5, 1.5, 1.55] } else { [0.95 + n, 0.95 + n, 0.95 + n] };
+                            dirt_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(col));
                             // wheel ruts on village roads
                             if s.arch == Arch::Village && (x + y) % 2 == 0 {
                                 matte.floor(fx + 0.2, fz, fx + 0.3, fz + 1.0, 0.025, c3([0.3, 0.26, 0.22]));
                             }
                         }
-                        Tile::Gravel => stone.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3([0.3 + n, 0.29 + n, 0.28 + n])),
+                        Tile::Gravel => gravel_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3([0.95 + n, 0.95 + n, 0.95 + n])),
                         Tile::Field => {
                             let base = if s.snow { [0.7 + n, 0.72 + n, 0.75 + n] } else { [0.2 + n, 0.16 + n, 0.1 + n] };
                             matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(base));
@@ -270,8 +351,17 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             }
                         }
                         Tile::Floor | Tile::Door => {
-                            let col = m.building_at_tile(x, y).map(|b| m.buildings[b].kind.floor_color()).unwrap_or([0.3, 0.25, 0.2]);
-                            floor.floor(fx, fz, fx + 1.0, fz + 1.0, 0.1, c3([col[0] + n, col[1] + n, col[2] + n]));
+                            let bk = m.building_at_tile(x, y).map(|b| m.buildings[b].kind);
+                            // tiled floors where they belong, oak boards elsewhere (tinted by the building's floor colour)
+                            let tiled = matches!(bk, Some(BKind::Bar | BKind::Restaurant | BKind::Hospital | BKind::Pharmacy | BKind::Market | BKind::Police | BKind::Lab | BKind::Station | BKind::Cabaret));
+                            if tiled {
+                                tile_floor.floor(fx, fz, fx + 1.0, fz + 1.0, 0.1, c3([1.0, 1.0, 1.0]));
+                            } else {
+                                let col = bk.map(|k| k.floor_color()).unwrap_or([0.3, 0.25, 0.2]);
+                                let l = (col[0] + col[1] + col[2]) / 3.0;
+                                let k = [0.8 + (col[0] - l) + n, 0.8 + (col[1] - l) + n, 0.8 + (col[2] - l) + n];
+                                floor.floor(fx, fz, fx + 1.0, fz + 1.0, 0.1, c3(k));
+                            }
                         }
                         Tile::Fence => {
                             let berlin = city == CityId::Berlin && m.building_at_tile(x, y).is_none() && !m.districts.iter().any(|d| d.name.contains("Cemit") && x >= d.x && x < d.x + d.w);
@@ -311,6 +401,11 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 (road, if s.street == Surface::Cobble { mats.road.clone() } else { mats.asphalt.clone() }, true),
                 (stone, mats.stone.clone(), true),
                 (walk, mats.sidewalk.clone(), true),
+                (grass_mb, mats.grass.clone(), true),
+                (dirt_mb, mats.dirt.clone(), true),
+                (sand_mb, mats.sand.clone(), true),
+                (gravel_mb, mats.gravel.clone(), true),
+                (tile_floor, mats.floor_tiles.clone(), true),
                 (matte, mats.matte.clone(), true),
                 (floor, mats.floor.clone(), true),
                 (water, mats.water.clone(), false),
@@ -383,7 +478,15 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
 fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &Map, b: &Building, year: i32, root: Entity, s: &Style) -> BVis {
     let hgt = wall_height(b, s);
     let nfl = floors(b, s);
-    let fcol = facade(b, s);
+    let wall_kind = wall_kind(b, s);
+    // textured masonry carries its own colour; painted surfaces use the facade palette
+    let fcol = match wall_kind {
+        WallKind::Brick | WallKind::YellowBrick | WallKind::Stone => {
+            let k = 0.9 + hashf(b.x, b.y, 79) * 0.2;
+            [k, k * 0.98, k * 0.96]
+        }
+        _ => facade(b, s),
+    };
     let seed = hash2(b.x, b.y, 55);
     let low_h = 0.55;
     let mut full = MB::new();
@@ -767,10 +870,17 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         c.entity(root).add_child(id);
         id
     };
-    let wall_mat = if matches!(s.arch, Arch::Brick | Arch::Terrace | Arch::HighRise) && !matches!(b.kind, BKind::Church | BKind::Police | BKind::Bank) { mats.wall.clone() } else { mats.plaster.clone() };
+    let wall_mat = match wall_kind {
+        WallKind::Brick => mats.wall.clone(),
+        WallKind::YellowBrick => mats.brick_yellow.clone(),
+        WallKind::Stone => mats.stone_wall.clone(),
+        WallKind::Siding => mats.siding.clone(),
+        WallKind::Plaster => mats.plaster.clone(),
+    };
     let full_e = spawn(full, wall_mat.clone(), true, true);
     let low_e = spawn(low, wall_mat, false, false);
-    let roof_e = spawn(roof, if gabled_roof { mats.roof.clone() } else { mats.roof_flat.clone() }, true, true);
+    let slate_city = matches!(s.arch, Arch::Terrace | Arch::Stone | Arch::Wooden | Arch::Victorian);
+    let roof_e = spawn(roof, if !gabled_roof { mats.roof_flat.clone() } else if slate_city { mats.slate.clone() } else { mats.roof.clone() }, true, true);
     let glass_e = spawn(glass, mats.glass_dark.clone(), true, false);
     spawn(furn, mats.furn.clone(), true, true);
     let glow_e = spawn(glow, mats.glow.clone(), true, false);

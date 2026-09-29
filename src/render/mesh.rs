@@ -319,6 +319,70 @@ impl MB {
         }
     }
 
+    /// Smooth body through a list of elliptical cross-sections
+    /// (centre, forward direction, width radius, height radius), with capped ends.
+    /// Used for horses, car bodies, bottles: anything organic.
+    pub fn loft(&mut self, secs: &[(Vec3, Vec3, f32, f32)], seg: u32, col: [f32; 4]) {
+        self.loft_c(secs, seg, &|_, _| col);
+    }
+
+    /// Like `loft` but with a colour function (section index, angle 0..1).
+    pub fn loft_c(&mut self, secs: &[(Vec3, Vec3, f32, f32)], seg: u32, col: &dyn Fn(usize, f32) -> [f32; 4]) {
+        if secs.len() < 2 {
+            return;
+        }
+        let base = self.pos.len() as u32;
+        let frames: Vec<(Vec3, Vec3)> = secs
+            .iter()
+            .map(|(_, f, _, _)| {
+                let f = f.normalize_or(Vec3::X);
+                let side = if f.y.abs() < 0.95 { f.cross(Vec3::Y).normalize() } else { f.cross(Vec3::Z).normalize() };
+                let up = side.cross(f).normalize();
+                (side, up)
+            })
+            .collect();
+        for (i, (c, _, rx, ry)) in secs.iter().enumerate() {
+            let (side, up) = frames[i];
+            for k in 0..=seg {
+                let t = k as f32 / seg as f32;
+                let a = t * std::f32::consts::TAU;
+                let (sn, cs) = a.sin_cos();
+                let p = *c + side * cs * *rx + up * sn * *ry;
+                let n = (side * cs * *ry + up * sn * *rx).normalize_or(up);
+                self.pos.push(p.into());
+                self.nrm.push(n.into());
+                self.col.push(col(i, t));
+                self.uv.push(world_uv(p, n));
+            }
+        }
+        let row = seg + 1;
+        for i in 0..secs.len() as u32 - 1 {
+            for k in 0..seg {
+                let a = base + i * row + k;
+                let b = a + row;
+                self.idx.extend_from_slice(&[a, b, a + 1, a + 1, b, b + 1]);
+            }
+        }
+        // caps
+        for (end, i) in [(false, 0usize), (true, secs.len() - 1)] {
+            let (c, f, _, _) = secs[i];
+            let n = if end { f.normalize_or(Vec3::X) } else { -f.normalize_or(Vec3::X) };
+            let cb = self.pos.len() as u32;
+            self.pos.push(c.into());
+            self.nrm.push(n.into());
+            self.col.push(col(i, 0.0));
+            self.uv.push(world_uv(c, n));
+            let ring = base + i as u32 * row;
+            for k in 0..seg {
+                if end {
+                    self.idx.extend_from_slice(&[cb, ring + k, ring + k + 1]);
+                } else {
+                    self.idx.extend_from_slice(&[cb, ring + k + 1, ring + k]);
+                }
+            }
+        }
+    }
+
     pub fn tri(&mut self, a: Vec3, b: Vec3, c: Vec3, col: [f32; 4]) {
         let n = (b - a).cross(c - a).normalize_or_zero();
         let base = self.pos.len() as u32;

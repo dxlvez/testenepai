@@ -86,7 +86,8 @@ fn main() {
     }
     let settings = keys::Settings::load();
     let fullscreen = settings.fullscreen && std::env::var("RT_SCRIPT").is_err();
-    App::new()
+    let mut app = App::new();
+    app
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
@@ -150,6 +151,7 @@ fn main() {
                 setup,
                 ui::load_fonts,
                 camera::spawn_camera,
+                render::models::load_models,
                 render::post::setup_post,
                 env::setup_env,
                 audio::setup_audio,
@@ -214,6 +216,9 @@ fn main() {
             Update,
             (
                 camera::apply_quality,
+                render::models::attach_env_map,
+                render::models::start_horse_anims,
+                render::horse::animate_horses,
                 render::post::animate_post,
                 camera::camera_follow,
                 camera::update_cursor,
@@ -259,8 +264,25 @@ fn main() {
             )
                 .chain()
                 .after(crime::fade_fx),
-        )
-        .run();
+        );
+    embed_models(&mut app);
+    app.run();
+}
+
+/// Real models and environment maps are compiled into the executable.
+fn embed_models(app: &mut App) {
+    use bevy::asset::embedded_asset;
+    embedded_asset!(app, "models/Horse.glb");
+    embedded_asset!(app, "models/GlamVelvetSofa.glb");
+    embedded_asset!(app, "models/SheenWoodLeatherSofa.glb");
+    embedded_asset!(app, "models/SheenChair.glb");
+    embedded_asset!(app, "models/ChairDamaskPurplegold.glb");
+    embedded_asset!(app, "models/Lantern.glb");
+    embedded_asset!(app, "models/AnisotropyBarnLamp.glb");
+    embedded_asset!(app, "models/DiffuseTransmissionPlant.glb");
+    embedded_asset!(app, "models/GlassHurricaneCandleHolder.glb");
+    embedded_asset!(app, "models/pisa_diffuse_rgb9e5_zstd.ktx2");
+    embedded_asset!(app, "models/pisa_specular_rgb9e5_zstd.ktx2");
 }
 
 /// Lists building kinds and districts of every city (used when writing cases).

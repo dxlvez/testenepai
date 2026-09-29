@@ -4,3 +4,5 @@ pub mod mesh;
 pub mod props;
 pub mod textures;
 pub mod post;
+pub mod models;
+pub mod horse;

@@ -208,55 +208,7 @@ fn wagon_mesh(color: [f32; 3], id: u32) -> MB {
     // shafts
     m.rod(Vec3::new(0.3, 0.9, -0.42), Vec3::new(2.1, 1.25, -0.36), 0.03, wood);
     m.rod(Vec3::new(0.3, 0.9, 0.42), Vec3::new(2.1, 1.25, 0.36), 0.03, wood);
-    // horse: barrel body, chest, rump, neck, head
-    let (hx, hy) = (1.55, 1.35);
-    m.sphere(Vec3::new(hx, hy, 0.0), Vec3::new(0.75, 0.34, 0.3), 14, hc);
-    m.sphere(Vec3::new(hx + 0.55, hy + 0.05, 0.0), Vec3::new(0.3, 0.36, 0.28), 12, hc);
-    m.sphere(Vec3::new(hx - 0.55, hy + 0.05, 0.0), Vec3::new(0.32, 0.36, 0.3), 12, hc);
-    let neck_b = Vec3::new(hx + 0.7, hy + 0.2, 0.0);
-    let neck_t = Vec3::new(hx + 1.05, hy + 0.8, 0.0);
-    for k in 0..5 {
-        let t = k as f32 / 4.0;
-        let p = neck_b.lerp(neck_t, t);
-        m.sphere(p, Vec3::new(0.2 - t * 0.05, 0.22 - t * 0.04, 0.15 - t * 0.03), 10, hc);
-    }
-    // head: skull + muzzle + ears + eyes
-    m.sphere(Vec3::new(hx + 1.15, hy + 0.82, 0.0), Vec3::new(0.18, 0.14, 0.12), 10, hc);
-    m.sphere(Vec3::new(hx + 1.38, hy + 0.62, 0.0), Vec3::new(0.2, 0.1, 0.09), 10, hc);
-    m.sphere(Vec3::new(hx + 1.52, hy + 0.58, 0.0), Vec3::new(0.07, 0.07, 0.08), 8, c3([horse_col[0] * 0.6, horse_col[1] * 0.6, horse_col[2] * 0.6]));
-    for sz in [-0.06f32, 0.06] {
-        m.frustum(Vec3::new(hx + 1.1, hy + 0.93, sz), 0.035, 0.005, 0.13, 6, hc);
-        m.sphere(Vec3::new(hx + 1.24, hy + 0.83, sz * 1.6), Vec3::splat(0.022), 6, c3([0.02, 0.02, 0.02]));
-    }
-    if id % 2 == 0 {
-        // white blaze
-        m.sphere(Vec3::new(hx + 1.3, hy + 0.72, 0.0), Vec3::new(0.14, 0.04, 0.035), 8, c3([0.9, 0.88, 0.84]));
-    }
-    // mane and tail
-    for k in 0..6 {
-        let t = k as f32 / 5.0;
-        let p = neck_b.lerp(neck_t, t) + Vec3::new(-0.1, 0.15, 0.0);
-        m.sphere(p, Vec3::new(0.12, 0.1, 0.05), 6, mane);
-    }
-    m.rod(Vec3::new(hx - 0.85, hy + 0.15, 0.0), Vec3::new(hx - 1.0, hy - 0.5, 0.0), 0.07, mane);
-    m.sphere(Vec3::new(hx - 1.0, hy - 0.55, 0.0), Vec3::new(0.08, 0.14, 0.08), 6, mane);
-    // legs: upper, knee, cannon, hoof (front slightly bent)
-    for (lx, lz, bend) in [(hx + 0.55, -0.16, 0.08f32), (hx + 0.55, 0.16, -0.05), (hx - 0.55, -0.16, -0.06), (hx - 0.55, 0.16, 0.05)] {
-        let top = Vec3::new(lx, hy - 0.15, lz);
-        let knee = Vec3::new(lx + bend, 0.55, lz);
-        let fet = Vec3::new(lx + bend * 0.5, 0.14, lz);
-        m.rod(top, knee, 0.075, hc);
-        m.sphere(knee, Vec3::splat(0.07), 6, hc);
-        m.rod(knee, fet, 0.05, hc);
-        m.sphere(fet + Vec3::new(0.0, 0.03, 0.0), Vec3::new(0.07, 0.06, 0.07), 6, if id % 3 == 1 { c3([0.88, 0.86, 0.82]) } else { hc });
-        m.frustum(Vec3::new(fet.x, 0.0, fet.z), 0.075, 0.065, 0.08, 8, dark);
-    }
-    // harness: collar, straps, blinkers
-    m.sphere(Vec3::new(hx + 0.8, hy + 0.28, 0.0), Vec3::new(0.1, 0.3, 0.25), 10, c3([0.25, 0.14, 0.08]));
-    m.rod(Vec3::new(hx + 0.8, hy + 0.0, -0.28), Vec3::new(hx - 0.5, hy - 0.05, -0.3), 0.02, dark);
-    m.rod(Vec3::new(hx + 0.8, hy + 0.0, 0.28), Vec3::new(hx - 0.5, hy - 0.05, 0.3), 0.02, dark);
-    m.rod(Vec3::new(hx + 1.35, hy + 0.65, -0.1), Vec3::new(0.2, 1.3, -0.3), 0.01, dark);
-    m.rod(Vec3::new(hx + 1.35, hy + 0.65, 0.1), Vec3::new(0.2, 1.3, 0.3), 0.01, dark);
+    let _ = (hc, mane);
     m
 }
 
@@ -277,7 +229,7 @@ pub fn car_value(year: i32) -> i32 {
 }
 
 /// Spawn parked and moving cars for the current city.
-pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityMap>>, mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats: Option<Res<Mats>>, old: Query<Entity, With<CarVis>>) {
+pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityMap>>, mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mats: Option<Res<Mats>>, old: Query<Entity, With<CarVis>>, models: Option<Res<crate::render::models::Models>>) {
     let Some(map) = map else { return };
     let Some(mats) = mats else { return };
     let key = (game.city, game.year, game.timeline);
@@ -391,14 +343,22 @@ pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityM
         }
         let mb = if car.horse { wagon_mesh(car.color, car.id) } else { car_mesh(game.year, car.color, car.id) };
         let g = if car.horse { lantern_mesh() } else { headlights(game.year) };
+        let horse = car.horse;
+        let cid = car.id;
         let e = c
             .spawn((Mesh3d(meshes.add(mb.build())), MeshMaterial3d(mats.plain.clone()), Transform::from_xyz(car.pos.x, 0.0, car.pos.y), CarVis(car.id)))
             .with_children(|p| {
                 p.spawn((Mesh3d(meshes.add(g.build())), MeshMaterial3d(mats.glow.clone()), Transform::default()));
             })
             .id();
+        if horse {
+            let h = crate::render::horse::spawn_horse(&mut c, &mut meshes, &mats.skin, cid.wrapping_mul(2654435761) >> 7, cid);
+            c.entity(h).insert(Transform::from_xyz(1.55, 0.0, 0.0));
+            c.entity(e).add_child(h);
+        }
         car.entity = Some(e);
     }
+    let _ = &models;
 }
 
 #[allow(clippy::too_many_arguments)]

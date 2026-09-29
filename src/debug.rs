@@ -14,6 +14,7 @@ pub fn debug_cmds(
     map: Option<Res<crate::world::CityMap>>,
     sim: Res<crate::sim::agents::Sim>,
     mut settings: ResMut<crate::keys::Settings>,
+    cars: Res<crate::vehicles::Cars>,
     (db, mut popups, mut choices, mut ui, mut sfx, mut toasts): (
         Res<crate::cases::run::CaseDb>,
         ResMut<crate::ui::screens::Popups>,
@@ -136,6 +137,14 @@ pub fn debug_cmds(
                     pr.motive = Some(def.motive);
                     pr.sphere = Some(if n >= 3 { def.anomaly } else { 0 });
                     crate::narrative::resolve_case(&mut game, &db, &mut popups, &mut choices, &mut ui, &mut sfx, &mut toasts);
+                }
+            }
+            // next to the first horse cart (or car)
+            "tpcar" => {
+                let want_horse = v == "horse";
+                if let Some(car) = cars.list.iter().find(|c| c.horse == want_horse) {
+                    game.player.pos = car.pos + Vec2::new(0.0, 2.2);
+                    cam.focus = Vec3::new(game.player.pos.x, 0.8, game.player.pos.y);
                 }
             }
             "grain" => {
