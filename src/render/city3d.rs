@@ -340,7 +340,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                     let (fx, fz) = (x as f32, y as f32);
                     let n = hashf(x, y, 1) * 0.08;
                     match m.get(x, y) {
-                            let k = [0.62 + grass[0] * 0.5 + n, 0.8 + grass[1] * 0.5 + n, 0.5 + grass[2] * 0.5 + n];
+                        Tile::Road => {
                             let col = if modern { [0.95 + n, 0.95 + n, 0.95 + n] } else { [1.0 + n, 1.0 + n, 1.0 + n] };
                             road.floor(fx, fz, fx + 1.0, fz + 1.0, 0.0, c3(col));
                             if modern && hash2(x, y, 3) % 2 == 0 {
@@ -366,7 +366,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                         Tile::Alley => matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.03, c3([0.2 + n, 0.19 + n, 0.18 + n])),
                         Tile::Grass => {
                             // the texture carries the colour; the city's grass tone nudges it (dry Adelaide, lush Bergen)
-                            let k = [0.55 + grass[0] * 0.5 + n, 0.85 + grass[1] * 0.5 + n, 0.45 + grass[2] * 0.5 + n];
+                            let k = [0.62 + grass[0] * 0.5 + n, 0.8 + grass[1] * 0.5 + n, 0.5 + grass[2] * 0.5 + n];
                             grass_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(if s.snow { [1.6, 1.6, 1.7] } else { k }));
                             if !s.snow {
                                 // tufts of real blades so lawns read as grass, not a painted floor
