@@ -901,6 +901,11 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let mut deco = MB::new();
     let mut lining_back = MB::new();
     let mut deco_back = MB::new();
+    // real wall pieces go under these (the front one hides with the cut-away walls)
+    let hang_front = c.spawn((Transform::default(), Visibility::Inherited)).id();
+    let hang_back = c.spawn((Transform::default(), Visibility::Inherited)).id();
+    c.entity(root).add_child(hang_back);
+    let room_style = building_style(b, m, year);
     if !is_market && !matches!(b.kind, BKind::Barn | BKind::Warehouse | BKind::Abandoned | BKind::Factory) {
         let paper = room_paper(b, year);
         let skirting = c3([paper[0] * 0.35, paper[1] * 0.3, paper[2] * 0.28]);
@@ -919,6 +924,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                     let (nx, ny) = (x + dx, y + dy);
                     let nb = (nx == b.x || ny == b.y) && nx != b.x + b.w - 1 && ny != b.y + b.h - 1;
                     let (lin, dec): (&mut MB, &mut MB) = if nb { (&mut lining_back, &mut deco_back) } else { (&mut lining, &mut deco) };
+                    let holder = if nb { hang_back } else { hang_front };
                     // the inner face of the thin wall in the neighbouring tile
                     let (p0, p1) = match (dx, dy) {
                         (1, 0) => (Vec3::new(fx + 1.0 + WIN - 0.02, 0.0, fz), Vec3::new(fx + 1.0 + WIN, 0.0, fz + 1.0)),
@@ -939,7 +945,14 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             let side = if dx != 0 { Vec3::Z } else { Vec3::X };
                             let deco_c = mid + into * 0.02;
                             match r {
-                                0..=13 => picture(&mut *dec, deco_c + Vec3::Y * 1.55, side, into, hash2(x, y, 405), year),
+                                0..=13 => {
+                                    let wanted = if matches!(b.kind, BKind::Bar | BKind::Club) && r < 3 { "dartboard" } else { "picture" };
+                                    if !hang(c, lib, wanted, year, hash2(x, y, 405), room_style, deco_c + Vec3::Y * 1.55, -into, holder) {
+                                        picture(&mut *dec, deco_c + Vec3::Y * 1.55, side, into, hash2(x, y, 405), year);
+                                    }
+                                }
+                                14..=17 if hang(c, lib, "clock_wall", year, hash2(x, y, 406), room_style, deco_c + Vec3::Y * 1.9, -into, holder) => {}
+                                28..=29 if hang(c, lib, "mirror", year, hash2(x, y, 407), room_style, deco_c + Vec3::Y * 1.5, -into, holder) => {}
                                 14..=17 if year >= 1900 => {
                                     // wall clock
                                     dec.bx(deco_c + Vec3::Y * 1.9, side * 0.16 + Vec3::Y * 0.16 + into * 0.03, c3([0.3, 0.18, 0.1]));
@@ -1002,6 +1015,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         let style = building_style(b, m, year);
         if let Some(e) = real_model(c, lib, p, year, floor_y, root, style) {
             let _ = e;
+            dress_top(c, lib, p, year, floor_y, root, style, b);
             continue;
         }
         let (gs, gg) = prop_geo(p, year, s, false);
@@ -1044,7 +1058,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     spawn(furn, mats.furn.clone(), true, true);
     let glow_e = spawn(glow, mats.glow.clone(), true, false);
     // signs and window glass disappear together with the walls when cut away
-    c.entity(full_e).add_children(&[glass_e, glow_e, lining_e, deco_e]);
+    c.entity(full_e).add_children(&[glass_e, glow_e, lining_e, deco_e, hang_front]);
     c.entity(low_e).add_child(lining_low_e);
     if !is_market {
         for &(dx, dy) in &b.doors {
@@ -1211,8 +1225,9 @@ fn real_model(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year:
     // chairs/beds were authored with the back on -z in the procedural set; the models all have it on +z
     let rot = if p.kind.back_neg_z() { (rot + 2) % 4 } else { rot };
     let tr = if natural {
-        let ang = (seed % 4) as f32 * std::f32::consts::FRAC_PI_2;
-        let k = if p.kind == PKind::Tree { 0.8 + (seed % 7) as f32 * 0.08 } else { 1.0 };
+        let ang = (seed % 16) as f32 * 0.39;
+        // trees: a believable street/park tree height, whatever the source size
+        let k = if p.kind == PKind::Tree { (6.0 + (seed % 7) as f32 * 0.6) / e.size[1].max(0.5) } else { 1.0 };
         Transform::from_translation(centre).with_rotation(Quat::from_rotation_y(ang)).with_scale(Vec3::splat(k))
     } else {
         super::lib3d::fit(e, centre, p.w as f32 * 0.96, p.h as f32 * 0.96, rot, 1.15)
@@ -1220,6 +1235,51 @@ fn real_model(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year:
     let ent = c.spawn((SceneRoot(h.clone()), tr)).id();
     c.entity(root).add_child(ent);
     Some(ent)
+}
+
+
+/// Put real objects on tables, desks, nightstands and counters.
+#[allow(clippy::too_many_arguments)]
+fn dress_top(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year: i32, floor_y: f32, root: Entity, style: Option<&str>, b: &Building) {
+    let Some(lib) = lib else { return };
+    let seed = hash2(p.x, p.y, 991);
+    let (h, cats): (f32, &[&str]) = match p.kind {
+        PKind::Nightstand => (0.6, &["lamp_table", "clock_table", "books"]),
+        PKind::Table => {
+            if matches!(b.kind, BKind::Bar | BKind::Restaurant | BKind::Club | BKind::Cabaret) {
+                (0.76, &["bottles", "tableware", "lamp_table"])
+            } else {
+                (0.76, &["vase", "tableware", "books", "lamp_table", "kettle"])
+            }
+        }
+        PKind::Desk => (0.76, &["lamp_table", "books", "radio"]),
+        PKind::Counter => (1.08, &["cash_register", "bottles", "tableware"]),
+        _ => return,
+    };
+    if seed % 3 == 0 && p.kind != PKind::Counter {
+        return;
+    }
+    let cat = cats[(seed as usize / 3) % cats.len()];
+    let Some((e, hnd)) = lib.pick(cat, year, seed, style) else { return };
+    if e.size[0] > 0.8 || e.size[2] > 0.8 {
+        return;
+    }
+    let jitter = Vec3::new(((seed >> 4) % 5) as f32 * 0.06 - 0.12, 0.0, ((seed >> 7) % 5) as f32 * 0.06 - 0.12);
+    let pos = Vec3::new(p.x as f32 + p.w as f32 / 2.0, floor_y + h, p.y as f32 + p.h as f32 / 2.0) + jitter;
+    let ent = c.spawn((SceneRoot(hnd), Transform::from_translation(pos).with_rotation(Quat::from_rotation_y((seed % 8) as f32 * 0.78)))).id();
+    c.entity(root).add_child(ent);
+}
+
+/// A real wall piece (clock, picture, mirror, dartboard) hung at `pos` with its back towards `back`.
+fn hang(c: &mut Commands, lib: Option<&super::lib3d::Lib>, cat: &str, year: i32, seed: u32, style: Option<&str>, pos: Vec3, back: Vec3, parent: Entity) -> bool {
+    let Some(lib) = lib else { return false };
+    let Some((e, hnd)) = lib.pick(cat, year, seed, style) else { return false };
+    // models face -z with the back at +z: turn +z towards the wall
+    let ang = back.x.atan2(back.z);
+    let pos = pos - back * (e.size[2] * 0.5);
+    let ent = c.spawn((SceneRoot(hnd), Transform::from_translation(pos).with_rotation(Quat::from_rotation_y(ang)))).id();
+    c.entity(parent).add_child(ent);
+    true
 }
 
 trait RuinRoof {

@@ -40,14 +40,26 @@ impl Lib {
     /// A model of `category` plausible in `year`, chosen by `seed` (optionally preferring a style).
     /// The model is loaded the first time it is used.
     pub fn pick(&self, category: &str, year: i32, seed: u32, style: Option<&str>) -> Option<(Entry, Handle<Scene>)> {
-        let ok: Vec<&Entry> = self.entries.iter().filter(|e| e.category == category && year >= e.min_year && year <= e.max_year).collect();
+        let want_chinese = style == Some("chinese");
+        let ok: Vec<&Entry> = self
+            .entries
+            .iter()
+            .filter(|e| e.category == category && year >= e.min_year && year <= e.max_year)
+            // regional / luxury pieces only where they belong
+            .filter(|e| want_chinese == e.style.contains("chinese") || category == "tree" || category == "grass")
+            .filter(|e| !(e.style.contains("gothic") && !matches!(style, Some("gothic") | Some("rich"))))
+            .collect();
         if ok.is_empty() {
             return None;
         }
-        let chosen = match style {
+        let pref = match style {
+            Some(st) => Some(st),
+            None => Some("home"),
+        };
+        let chosen = match pref {
             Some(st) => {
                 let styled: Vec<&&Entry> = ok.iter().filter(|e| e.style.contains(st)).collect();
-                if styled.is_empty() {
+                if styled.is_empty() || (seed >> 5) % 5 == 0 {
                     ok[(seed as usize) % ok.len()]
                 } else {
                     styled[(seed as usize) % styled.len()]
