@@ -345,17 +345,19 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             if !s.snow {
                                 // tufts of real blades so lawns read as grass, not a painted floor
                                 let lush = 0.8 + hashf(x, y, 21) * 0.4;
-                                for t in 0..9 {
-                                    let tx = fx + 0.08 + hashf(x * 7 + t, y, 22) * 0.84;
-                                    let tz = fz + 0.08 + hashf(x, y * 7 + t, 23) * 0.84;
+                                // city tone blended towards a living green so lawns never look burnt
+                                let g = [grass[0] * 0.5 + 0.16, grass[1] * 0.5 + 0.26, grass[2] * 0.5 + 0.07];
+                                for t in 0..22 {
+                                    let tx = fx + 0.03 + hashf(x * 7 + t, y, 22) * 0.94;
+                                    let tz = fz + 0.03 + hashf(x, y * 7 + t, 23) * 0.94;
                                     let dry = hashf(x + t, y - t, 24);
-                                    let tip = [(grass[0] * 1.5 + dry * 0.12) * lush, (grass[1] * 1.35 + dry * 0.05) * lush, grass[2] * 1.1 * lush];
-                                    let root = [grass[0] * 0.35, grass[1] * 0.4, grass[2] * 0.3];
-                                    for b in 0..3 {
+                                    let tip = [(g[0] * 1.35 + dry * 0.1) * lush, (g[1] * 1.3 + dry * 0.04) * lush, g[2] * 1.1 * lush];
+                                    let root = [g[0] * 0.6, g[1] * 0.65, g[2] * 0.55];
+                                    for b in 0..4 {
                                         let yaw = hashf(x * 3 + t, y * 5 + b, 25) * 6.28;
-                                        let lean = Vec2::new(yaw.sin(), yaw.cos()) * (0.03 + hashf(t, b, (x + y) as u32) * 0.07);
-                                        let h = (0.12 + hashf(x + b, y + t, 26) * 0.16) * lush;
-                                        blades.blade(Vec3::new(tx, 0.02, tz), lean, h, 0.035, yaw, c3(root), c3(tip));
+                                        let lean = Vec2::new(yaw.sin(), yaw.cos()) * (0.02 + hashf(t, b, (x + y) as u32) * 0.06);
+                                        let h = (0.07 + hashf(x + b, y + t, 26) * 0.13) * lush;
+                                        blades.blade(Vec3::new(tx, 0.02, tz), lean, h, 0.022, yaw, c3(root), c3(tip));
                                     }
                                 }
                             }
