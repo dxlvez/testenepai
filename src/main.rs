@@ -59,6 +59,11 @@ fn boot(mut ui: ResMut<ui::UiState>, mut flow: ResMut<narrative::Flow>, mut game
 }
 
 fn main() {
+    // glTF loading of detailed models needs deeper stacks than the default worker threads have
+    if std::env::var("RUST_MIN_STACK").is_err() {
+        // SAFETY: set before any thread is spawned
+        unsafe { std::env::set_var("RUST_MIN_STACK", "16777216") };
+    }
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--dump-map") {
         let city = args.iter().position(|a| a == "--city").and_then(|i| args.get(i + 1)).cloned().unwrap_or_default();
@@ -219,7 +224,6 @@ fn main() {
             (
                 camera::apply_quality,
                 render::models::attach_env_map,
-                render::models::start_horse_anims,
                 render::horse::animate_horses,
                 render::post::animate_post,
                 camera::camera_follow,
@@ -275,15 +279,6 @@ fn main() {
 /// Real models and environment maps are compiled into the executable.
 fn embed_models(app: &mut App) {
     use bevy::asset::embedded_asset;
-    embedded_asset!(app, "models/Horse.glb");
-    embedded_asset!(app, "models/GlamVelvetSofa.glb");
-    embedded_asset!(app, "models/SheenWoodLeatherSofa.glb");
-    embedded_asset!(app, "models/SheenChair.glb");
-    embedded_asset!(app, "models/ChairDamaskPurplegold.glb");
-    embedded_asset!(app, "models/Lantern.glb");
-    embedded_asset!(app, "models/AnisotropyBarnLamp.glb");
-    embedded_asset!(app, "models/DiffuseTransmissionPlant.glb");
-    embedded_asset!(app, "models/GlassHurricaneCandleHolder.glb");
     embedded_asset!(app, "models/pisa_diffuse_rgb9e5_zstd.ktx2");
     embedded_asset!(app, "models/pisa_specular_rgb9e5_zstd.ktx2");
 }

@@ -326,6 +326,60 @@ impl MB {
         self.loft_c(secs, seg, &|_, _| col);
     }
 
+    /// Loft with rounded-rectangle (superellipse) sections: car bodies, cabinets.
+    /// `n` = 2 is an ellipse, 4..8 gets boxier.
+    pub fn loft_box(&mut self, secs: &[(Vec3, Vec3, f32, f32)], n: f32, seg: u32, col: [f32; 4]) {
+        if secs.len() < 2 {
+            return;
+        }
+        let base = self.pos.len() as u32;
+        let e = 2.0 / n;
+        for (c, f, rx, ry) in secs.iter() {
+            let f = f.normalize_or(Vec3::X);
+            let side = if f.y.abs() < 0.95 { f.cross(Vec3::Y).normalize() } else { f.cross(Vec3::Z).normalize() };
+            let up = side.cross(f).normalize();
+            for k in 0..=seg {
+                let a = k as f32 / seg as f32 * std::f32::consts::TAU;
+                let (sn, cs) = a.sin_cos();
+                let x = cs.signum() * cs.abs().powf(e);
+                let y = sn.signum() * sn.abs().powf(e);
+                let p = *c + side * x * *rx + up * y * *ry;
+                let nx = cs.signum() * cs.abs().powf(2.0 - e) / rx.max(0.001);
+                let ny = sn.signum() * sn.abs().powf(2.0 - e) / ry.max(0.001);
+                let nrm = (side * nx + up * ny).normalize_or(up);
+                self.pos.push(p.into());
+                self.nrm.push(nrm.into());
+                self.col.push(col);
+                self.uv.push(world_uv(p, nrm));
+            }
+        }
+        let row = seg + 1;
+        for i in 0..secs.len() as u32 - 1 {
+            for k in 0..seg {
+                let a = base + i * row + k;
+                let b = a + row;
+                self.idx.extend_from_slice(&[a, b, a + 1, a + 1, b, b + 1]);
+            }
+        }
+        for (end, i) in [(false, 0usize), (true, secs.len() - 1)] {
+            let (c, f, _, _) = secs[i];
+            let nn = if end { f.normalize_or(Vec3::X) } else { -f.normalize_or(Vec3::X) };
+            let cb = self.pos.len() as u32;
+            self.pos.push(c.into());
+            self.nrm.push(nn.into());
+            self.col.push(col);
+            self.uv.push(world_uv(c, nn));
+            let ring = base + i as u32 * row;
+            for k in 0..seg {
+                if end {
+                    self.idx.extend_from_slice(&[cb, ring + k, ring + k + 1]);
+                } else {
+                    self.idx.extend_from_slice(&[cb, ring + k + 1, ring + k]);
+                }
+            }
+        }
+    }
+
     /// Like `loft` but with a colour function (section index, angle 0..1).
     pub fn loft_c(&mut self, secs: &[(Vec3, Vec3, f32, f32)], seg: u32, col: &dyn Fn(usize, f32) -> [f32; 4]) {
         if secs.len() < 2 {

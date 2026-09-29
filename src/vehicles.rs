@@ -341,16 +341,36 @@ pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityM
         if car.horse {
             car.value = car.value / 3;
         }
-        let mb = if car.horse { wagon_mesh(car.color, car.id) } else { car_mesh(game.year, car.color, car.id) };
-        let g = if car.horse { lantern_mesh() } else { headlights(game.year) };
         let horse = car.horse;
         let cid = car.id;
-        let e = c
-            .spawn((Mesh3d(meshes.add(mb.build())), MeshMaterial3d(mats.plain.clone()), Transform::from_xyz(car.pos.x, 0.0, car.pos.y), CarVis(car.id)))
-            .with_children(|p| {
-                p.spawn((Mesh3d(meshes.add(g.build())), MeshMaterial3d(mats.glow.clone()), Transform::default()));
-            })
-            .id();
+        let e = if horse {
+            let mb = wagon_mesh(car.color, car.id);
+            let g = lantern_mesh();
+            c.spawn((Mesh3d(meshes.add(mb.build())), MeshMaterial3d(mats.plain.clone()), Transform::from_xyz(car.pos.x, 0.0, car.pos.y), CarVis(car.id)))
+                .with_children(|p| {
+                    p.spawn((Mesh3d(meshes.add(g.build())), MeshMaterial3d(mats.glow.clone()), Transform::default()));
+                })
+                .id()
+        } else {
+            // period car split by material: clear-coated paint, chrome, glass, rubber, lamps
+            let geo = crate::render::cars::build_car(game.year, car.id, game.city);
+            let parts = [
+                (geo.paint, mats.car_paint.clone()),
+                (geo.chrome, mats.chrome.clone()),
+                (geo.glass, mats.glass_dark.clone()),
+                (geo.dark, mats.plain.clone()),
+                (geo.lights, mats.lamp_unlit.clone()),
+            ];
+            let root = c.spawn((Transform::from_xyz(car.pos.x, 0.0, car.pos.y), Visibility::default(), CarVis(car.id))).id();
+            for (mb, mat) in parts {
+                if mb.is_empty() {
+                    continue;
+                }
+                let ch = c.spawn((Mesh3d(meshes.add(mb.build())), MeshMaterial3d(mat), Transform::default())).id();
+                c.entity(root).add_child(ch);
+            }
+            root
+        };
         if horse {
             let h = crate::render::horse::spawn_horse(&mut c, &mut meshes, &mats.skin, cid.wrapping_mul(2654435761) >> 7, cid);
             c.entity(h).insert(Transform::from_xyz(1.55, 0.0, 0.0));

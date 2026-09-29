@@ -29,25 +29,38 @@ fn far_future() -> i32 {
     3000
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct Lib {
-    pub entries: Vec<(Entry, Handle<Scene>)>,
+    pub entries: Vec<Entry>,
+    server: AssetServer,
+    cache: std::sync::Mutex<std::collections::HashMap<String, Handle<Scene>>>,
 }
 
 impl Lib {
     /// A model of `category` plausible in `year`, chosen by `seed` (optionally preferring a style).
-    pub fn pick(&self, category: &str, year: i32, seed: u32, style: Option<&str>) -> Option<&(Entry, Handle<Scene>)> {
-        let ok: Vec<&(Entry, Handle<Scene>)> = self.entries.iter().filter(|(e, _)| e.category == category && year >= e.min_year && year <= e.max_year).collect();
+    /// The model is loaded the first time it is used.
+    pub fn pick(&self, category: &str, year: i32, seed: u32, style: Option<&str>) -> Option<(Entry, Handle<Scene>)> {
+        let ok: Vec<&Entry> = self.entries.iter().filter(|e| e.category == category && year >= e.min_year && year <= e.max_year).collect();
         if ok.is_empty() {
             return None;
         }
-        if let Some(st) = style {
-            let styled: Vec<&&(Entry, Handle<Scene>)> = ok.iter().filter(|(e, _)| e.style.contains(st)).collect();
-            if !styled.is_empty() {
-                return Some(styled[(seed as usize) % styled.len()]);
+        let chosen = match style {
+            Some(st) => {
+                let styled: Vec<&&Entry> = ok.iter().filter(|e| e.style.contains(st)).collect();
+                if styled.is_empty() {
+                    ok[(seed as usize) % ok.len()]
+                } else {
+                    styled[(seed as usize) % styled.len()]
+                }
             }
-        }
-        Some(ok[(seed as usize) % ok.len()])
+            None => ok[(seed as usize) % ok.len()],
+        };
+        let mut cache = self.cache.lock().ok()?;
+        let h = cache
+            .entry(chosen.file.clone())
+            .or_insert_with(|| self.server.load(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/props/{}", chosen.file))))
+            .clone();
+        Some((chosen.clone(), h))
     }
 }
 
@@ -60,20 +73,18 @@ pub fn register_embedded(app: &mut App) {
 }
 
 pub fn load_lib(mut c: Commands, a: Res<AssetServer>) {
-    let mut lib = Lib::default();
+    let mut entries = Vec::new();
     if let Some((_, bytes)) = MODEL_FILES.iter().find(|(p, _)| *p == "props/manifest.json") {
         if let Ok(list) = serde_json::from_slice::<Vec<Entry>>(bytes) {
             for e in list {
-                if !MODEL_FILES.iter().any(|(p, _)| *p == format!("props/{}", e.file)) {
-                    continue;
+                if MODEL_FILES.iter().any(|(p, _)| *p == format!("props/{}", e.file)) {
+                    entries.push(e);
                 }
-                let h = a.load(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/props/{}", e.file)));
-                lib.entries.push((e, h));
             }
         }
     }
-    info!("modelos 3D reais: {}", lib.entries.len());
-    c.insert_resource(lib);
+    info!("modelos 3D reais disponíveis: {}", entries.len());
+    c.insert_resource(Lib { entries, server: a.clone(), cache: Default::default() });
 }
 
 /// Transform that sets a model (origin bottom-centre, back towards +z) on a

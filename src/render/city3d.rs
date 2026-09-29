@@ -39,6 +39,9 @@ pub struct Mats {
     pub furn: Handle<StandardMaterial>,
     pub fabric: Handle<StandardMaterial>,
     pub metal: Handle<StandardMaterial>,
+    pub car_paint: Handle<StandardMaterial>,
+    pub chrome: Handle<StandardMaterial>,
+    pub lamp_unlit: Handle<StandardMaterial>,
     pub glow: Handle<StandardMaterial>,
     pub glass_lit: Handle<StandardMaterial>,
     pub glass_dark: Handle<StandardMaterial>,
@@ -105,6 +108,19 @@ pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex, real: &super::t
         furn: base(mats, &tex.grain, 0.6, 0.35),
         fabric: base(mats, &tex.fabric, 0.95, 0.15),
         metal: mats.add(StandardMaterial { base_color: Color::WHITE, metallic: 0.8, perceptual_roughness: 0.35, cull_mode: None, ..default() }),
+        // glossy clear-coated car paint (colour from the vertices)
+        car_paint: mats.add(StandardMaterial {
+            base_color: Color::WHITE,
+            metallic: 0.25,
+            perceptual_roughness: 0.32,
+            reflectance: 0.6,
+            clearcoat: 1.0,
+            clearcoat_perceptual_roughness: 0.06,
+            cull_mode: None,
+            ..default()
+        }),
+        chrome: mats.add(StandardMaterial { base_color: Color::WHITE, metallic: 1.0, perceptual_roughness: 0.12, cull_mode: None, ..default() }),
+        lamp_unlit: mats.add(StandardMaterial { base_color: Color::WHITE, unlit: true, cull_mode: None, ..default() }),
         glow: emissive(mats, LinearRgba::rgb(6.0, 4.2, 2.4)),
         glass_lit: emissive(mats, LinearRgba::rgb(1.1, 0.72, 0.36)),
         glass_dark: mats.add(StandardMaterial { base_color: Color::srgb(0.05, 0.06, 0.09), perceptual_roughness: 0.05, reflectance: 0.8, cull_mode: None, ..default() }),
@@ -1189,6 +1205,7 @@ fn real_model(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year:
     let (cat, natural) = model_category(p.kind)?;
     let seed = hash2(p.x, p.y, 777);
     let (e, h) = lib.pick(cat, year, seed, style)?;
+    let e = &e;
     let centre = Vec3::new(p.x as f32 + p.w as f32 / 2.0, base_y, p.y as f32 + p.h as f32 / 2.0);
     let rot = if p.kind.back_neg_z() { (p.rot + 2) % 4 } else { p.rot };
     // chairs/beds were authored with the back on -z in the procedural set; the models all have it on +z
