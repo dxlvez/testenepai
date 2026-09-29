@@ -434,3 +434,92 @@ pub fn make(images: &mut Assets<Image>) -> Tex {
     );
     Tex { cobble, asphalt, grain, plaster, planks, brick, brick_yellow, stone, siding, tiles, slate, slabs, fabric, grass, dirt, sand, gravel, floor_tiles, wallpaper, leather }
 }
+
+// ---------------------------------------------------------------- photographic PBR materials (Poly Haven, CC0)
+
+/// Colour, normal and ARM (occlusion / roughness / metal) maps of a scanned material.
+#[derive(Clone)]
+pub struct Pbr {
+    pub diff: Handle<Image>,
+    pub nor: Handle<Image>,
+    pub arm: Handle<Image>,
+}
+
+fn decode(bytes: &[u8], srgb: bool, normal: bool) -> Image {
+    use bevy::image::{CompressedImageFormats, ImageType};
+    let im = Image::from_buffer(bytes, ImageType::Extension("jpg"), CompressedImageFormats::NONE, srgb, ImageSampler::Default, RenderAssetUsages::RENDER_WORLD).expect("textura embutida");
+    let size = im.texture_descriptor.size.width;
+    let data = im.data.clone().unwrap_or_default();
+    with_mips(size, data, if srgb { TextureFormat::Rgba8UnormSrgb } else { TextureFormat::Rgba8Unorm }, normal)
+}
+
+fn pbr(images: &mut Assets<Image>, d: &[u8], n: &[u8], a: &[u8]) -> Pbr {
+    Pbr { diff: images.add(decode(d, true, false)), nor: images.add(decode(n, false, true)), arm: images.add(decode(a, false, false)) }
+}
+
+macro_rules! real {
+    ($images:expr, $slot:literal) => {
+        pbr(
+            $images,
+            include_bytes!(concat!("../tex/", $slot, "_diff.jpg")),
+            include_bytes!(concat!("../tex/", $slot, "_nor.jpg")),
+            include_bytes!(concat!("../tex/", $slot, "_arm.jpg")),
+        )
+    };
+}
+
+pub struct Real {
+    pub cobble: Pbr,
+    pub cobble2: Pbr,
+    pub asphalt: Pbr,
+    pub sidewalk: Pbr,
+    pub brick: Pbr,
+    pub brick_yellow: Pbr,
+    pub stone: Pbr,
+    pub plaster: Pbr,
+    pub plaster_old: Pbr,
+    pub siding: Pbr,
+    pub roof_tiles: Pbr,
+    pub slate: Pbr,
+    pub grass: Pbr,
+    pub grass_dry: Pbr,
+    pub dirt: Pbr,
+    pub sand: Pbr,
+    pub gravel: Pbr,
+    pub wood_floor: Pbr,
+    pub parquet: Pbr,
+    pub floor_tiles: Pbr,
+    pub terracotta: Pbr,
+    pub velvet: Pbr,
+    pub planks_dark: Pbr,
+    pub wood_light: Pbr,
+}
+
+pub fn make_real(images: &mut Assets<Image>) -> Real {
+    Real {
+        cobble: real!(images, "cobble"),
+        cobble2: real!(images, "cobble2"),
+        asphalt: real!(images, "asphalt"),
+        sidewalk: real!(images, "sidewalk"),
+        brick: real!(images, "brick"),
+        brick_yellow: real!(images, "brick_yellow"),
+        stone: real!(images, "stone"),
+        plaster: real!(images, "plaster"),
+        plaster_old: real!(images, "plaster_old"),
+        siding: real!(images, "siding"),
+        roof_tiles: real!(images, "roof_tiles"),
+        slate: real!(images, "slate"),
+        grass: real!(images, "grass"),
+        grass_dry: real!(images, "grass_dry"),
+        dirt: real!(images, "dirt"),
+        sand: real!(images, "sand"),
+        gravel: real!(images, "gravel"),
+        wood_floor: real!(images, "wood_floor"),
+        parquet: real!(images, "parquet"),
+        floor_tiles: real!(images, "floor_tiles"),
+        terracotta: real!(images, "terracotta"),
+        velvet: real!(images, "velvet"),
+        planks_dark: real!(images, "planks_dark"),
+        wood_light: real!(images, "wood_light"),
+    }
+}

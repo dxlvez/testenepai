@@ -234,9 +234,9 @@ pub fn update_env(
         env.wet_applied = env.wet;
         if let Some(mh) = &mats_h {
             let w = env.wet;
-            for (h, dry) in [(&mh.road, 0.42), (&mh.asphalt, 0.55), (&mh.sidewalk, 0.6), (&mh.stone, 0.62)] {
+            for (h, dry) in [(&mh.road, 1.0), (&mh.asphalt, 1.0), (&mh.sidewalk, 1.0), (&mh.stone, 0.62)] {
                 if let Some(mat) = mats.get_mut(h) {
-                    mat.perceptual_roughness = (dry * (1.0 - w * 0.5)).max(0.24);
+                    mat.perceptual_roughness = (dry * (1.0 - w * 0.55)).max(0.2);
                     mat.reflectance = 0.35 + w * 0.3;
                 }
             }

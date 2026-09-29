@@ -574,8 +574,105 @@ impl<'a> Ctx<'a> {
         Some(i)
     }
 
-    /// Try to place a prop somewhere inside the rect.
+    /// Place a piece with its back flush against a wall (and its front open), anywhere in the rect.
+    /// `lw`/`lh` are the piece's own width/depth; it may be turned to fit the wall.
+    #[allow(clippy::too_many_arguments)]
+    fn place_wall(&mut self, k: PKind, rx: i32, ry: i32, rw: i32, rh: i32, lw: i32, lh: i32, b: usize) -> Option<usize> {
+        let low = matches!(k, PKind::Sofa | PKind::Bed | PKind::Desk | PKind::Armchair | PKind::Table | PKind::Bathtub | PKind::RadioSet | PKind::Tv | PKind::Nightstand | PKind::Plant);
+        let is_back = |t: Tile| t == Tile::Wall || (low && t == Tile::Window);
+        let mut cands: Vec<(i32, i32, i32, i32, u8)> = Vec::new();
+        for y in ry..ry + rh {
+            for x in rx..rx + rw {
+                for rot in 0..4u8 {
+                    let (w, h) = if rot % 2 == 1 { (lh, lw) } else { (lw, lh) };
+                    if x + w > rx + rw || y + h > ry + rh {
+                        continue;
+                    }
+                    // rot: 0 = back towards +z, 1 = +x, 2 = -z, 3 = -x
+                    let (back, front): (Vec<(i32, i32)>, Vec<(i32, i32)>) = match rot {
+                        0 => ((x..x + w).map(|a| (a, y + h)).collect(), (x..x + w).map(|a| (a, y - 1)).collect()),
+                        1 => ((y..y + h).map(|a| (x + w, a)).collect(), (y..y + h).map(|a| (x - 1, a)).collect()),
+                        2 => ((x..x + w).map(|a| (a, y - 1)).collect(), (x..x + w).map(|a| (a, y + h)).collect()),
+                        _ => ((y..y + h).map(|a| (x - 1, a)).collect(), (y..y + h).map(|a| (x + w, a)).collect()),
+                    };
+                    if back.iter().all(|&(a, c)| is_back(self.m.get(a, c))) && front.iter().all(|&(a, c)| self.free(a, c)) && self.area_free(x, y, w, h) {
+                        cands.push((x, y, w, h, rot));
+                    }
+                }
+            }
+        }
+        if cands.is_empty() {
+            return None;
+        }
+        let (x, y, w, h, rot) = cands[self.rng.idx(cands.len())];
+        let i = self.put(k, x, y, w, h, b)?;
+        self.m.props[i].rot = rot;
+        Some(i)
+    }
+
+    /// A chair next to a table at offset (dx, dy), turned to face the table.
+    fn chair_at(&mut self, tx: i32, ty: i32, dx: i32, dy: i32, b: usize) -> Option<usize> {
+        let i = self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b)?;
+        // the backrest points away from the table
+        self.m.props[i].rot = if dx > 0 {
+            1
+        } else if dx < 0 {
+            3
+        } else if dy > 0 {
+            0
+        } else {
+            2
+        };
+        Some(i)
+    }
+
+    /// Corner pieces (plants, floor lamps, coat stands): two walls touching.
+    fn place_corner(&mut self, k: PKind, rx: i32, ry: i32, rw: i32, rh: i32, b: usize) -> Option<usize> {
+        let mut cands = Vec::new();
+        for y in ry..ry + rh {
+            for x in rx..rx + rw {
+                let wx = self.m.get(x - 1, y) == Tile::Wall || self.m.get(x + 1, y) == Tile::Wall;
+                let wy = self.m.get(x, y - 1) == Tile::Wall || self.m.get(x, y + 1) == Tile::Wall;
+                if wx && wy && self.free(x, y) {
+                    cands.push((x, y));
+                }
+            }
+        }
+        if cands.is_empty() {
+            return None;
+        }
+        let (x, y) = cands[self.rng.idx(cands.len())];
+        self.put(k, x, y, 1, 1, b)
+    }
+
+    /// Try to place a prop somewhere inside the rect. Furniture that belongs
+    /// against a wall goes against a wall; corner pieces go in corners.
     fn scatter(&mut self, k: PKind, rx: i32, ry: i32, rw: i32, rh: i32, w: i32, h: i32, b: usize) -> Option<usize> {
+        use PKind::*;
+        if matches!(k, Plant | FloorLamp) {
+            if let Some(i) = self.place_corner(k, rx, ry, rw, rh, b) {
+                return Some(i);
+            }
+        }
+        if matches!(k, Bed | Wardrobe | Shelf | Stove | Fridge | Sink | Toilet | Sofa | Tv | Piano | Desk | Bathtub | RadioSet | Mirror | Safe | Board | Altar | Nightstand | Armchair | Counter | Typewriter) {
+            // beds and tubs are placed by their own length/width, others as given
+            if let Some(i) = self.place_wall(k, rx, ry, rw, rh, w.min(h).max(if matches!(k, Sofa | Piano | Desk | Shelf) { w.max(h) } else { 0 }), if matches!(k, Sofa | Piano | Desk | Shelf) { w.min(h) } else { w.max(h) }, b) {
+                return Some(i);
+            }
+            return None;
+        }
+        // free-standing pieces (tables, rugs): keep a walkway around them
+        for _ in 0..40 {
+            let x = rx + self.rng.range(0, (rw - w + 1).max(1));
+            let y = ry + self.rng.range(0, (rh - h + 1).max(1));
+            let clear = (x - 1..x + w + 1).all(|a| (y - 1..y + h + 1).all(|c| (a >= x && a < x + w && c >= y && c < y + h) || self.m.get(a, c) != Tile::Wall || matches!(k, Rug)));
+            if !clear && self.rng.chance(0.8) {
+                continue;
+            }
+            if let Some(i) = self.put(k, x, y, w, h, b) {
+                return Some(i);
+            }
+        }
         for _ in 0..30 {
             let x = rx + self.rng.range(0, (rw - w + 1).max(1));
             let y = ry + self.rng.range(0, (rh - h + 1).max(1));
@@ -683,7 +780,8 @@ impl<'a> Ctx<'a> {
                 if let Some(p) = self.scatter(PKind::Bed, bx, iy, bw, ih, 1, 2, b) {
                     let (px, py) = (self.m.props[p].x, self.m.props[p].y);
                     self.spot(b, SpotKind::Bed, px, py);
-                    self.put(PKind::Nightstand, px + 1, py, 1, 1, b).or_else(|| self.put(PKind::Nightstand, px - 1, py, 1, 1, b));
+                    let (bw, bh) = (self.m.props[p].w, self.m.props[p].h);
+                    self.place_wall(PKind::Nightstand, px - 1, py - 1, bw + 2, bh + 2, 1, 1, b);
                 }
             }
             self.scatter(PKind::Wardrobe, bx, iy, bw, ih, 1, 1, b);
@@ -696,7 +794,7 @@ impl<'a> Ctx<'a> {
             if let Some(t) = self.scatter(PKind::Table, ix, iy, lw, ih, 1, 1, b) {
                 let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
                 for (dx, dy) in [(1, 0), (-1, 0), (0, 1)] {
-                    if self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b).is_some() {
+                    if self.chair_at(tx, ty, dx, dy, b).is_some() {
                         self.spot(b, SpotKind::Seat, tx + dx, ty + dy);
                     }
                 }
@@ -732,7 +830,8 @@ impl<'a> Ctx<'a> {
             if let Some(p) = self.scatter(PKind::Bed, ix, iy, iw, ih, 1, 2, b) {
                 let (px, py) = (self.m.props[p].x, self.m.props[p].y);
                 self.spot(b, SpotKind::Bed, px, py);
-                self.put(PKind::Nightstand, px + 1, py, 1, 1, b).or_else(|| self.put(PKind::Nightstand, px - 1, py, 1, 1, b));
+                let (bw, bh) = (self.m.props[p].w, self.m.props[p].h);
+                    self.place_wall(PKind::Nightstand, px - 1, py - 1, bw + 2, bh + 2, 1, 1, b);
             }
             if let Some(p) = self.scatter(PKind::Toilet, ix, iy, iw, ih, 1, 1, b) {
                 let (px, py) = (self.m.props[p].x, self.m.props[p].y);
@@ -740,7 +839,7 @@ impl<'a> Ctx<'a> {
             }
             if let Some(t) = self.scatter(PKind::Table, ix, iy, iw, ih, 1, 1, b) {
                 let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
-                if self.put(PKind::Chair, tx + 1, ty, 1, 1, b).or_else(|| self.put(PKind::Chair, tx - 1, ty, 1, 1, b)).is_some() {
+                if self.chair_at(tx, ty, 1, 0, b).or_else(|| self.chair_at(tx, ty, -1, 0, b)).is_some() {
                     let cp = self.m.props.last().map(|p| (p.x, p.y)).unwrap_or((tx, ty));
                     self.spot(b, SpotKind::Seat, cp.0, cp.1);
                 }
@@ -819,7 +918,7 @@ impl<'a> Ctx<'a> {
                     if let Some(t) = self.scatter(PKind::Table, ix, iy, iw, ih, 1, 1, b) {
                         let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
                         for (dx, dy) in [(1, 0), (-1, 0)] {
-                            if self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b).is_some() {
+                            if self.chair_at(tx, ty, dx, dy, b).is_some() {
                                 self.spot(b, SpotKind::Seat, tx + dx, ty + dy);
                             }
                         }
@@ -969,7 +1068,7 @@ impl<'a> Ctx<'a> {
                 if let Some(t) = self.scatter(PKind::Table, ix, iy, iw / 4, ih, 1, 2, b) {
                     let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
                     for (dx, dy) in [(1, 0), (-1, 0), (1, 1), (-1, 1)] {
-                        if self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b).is_some() {
+                        if self.chair_at(tx, ty, dx, dy, b).is_some() {
                             self.spot(b, SpotKind::Seat, tx + dx, ty + dy);
                         }
                     }
@@ -1011,7 +1110,7 @@ impl<'a> Ctx<'a> {
                 if let Some(t) = self.scatter(PKind::Table, ix, iy, at - ix, ih, 1, 2, b) {
                     let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
                     for (dx, dy) in [(1, 0), (-1, 0), (1, 1), (-1, 1)] {
-                        if self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b).is_some() {
+                        if self.chair_at(tx, ty, dx, dy, b).is_some() {
                             self.spot(b, SpotKind::Seat, tx + dx, ty + dy);
                         }
                     }

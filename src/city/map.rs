@@ -224,6 +224,10 @@ pub enum PKind {
 }
 
 impl PKind {
+    /// Pieces whose model has the back on the local -z side (beds: headboard, chairs: backrest).
+    pub fn back_neg_z(self) -> bool {
+        matches!(self, PKind::Bed | PKind::Chair | PKind::Bathtub | PKind::Armchair | PKind::Pew | PKind::Piano)
+    }
     pub fn solid(self) -> bool {
         use PKind::*;
         !matches!(self, Rug | Chair | Stool | Grave | Sphere | Car)
@@ -306,6 +310,10 @@ pub struct Prop {
     pub items: Vec<u32>,
     /// Bodies hidden inside (person ids).
     pub bodies: Vec<u32>,
+    /// Which way the back of the piece faces (0 = +z, 1 = +x, 2 = -z, 3 = -x):
+    /// furniture stands with its back against a wall.
+    #[serde(default)]
+    pub rot: u8,
 }
 
 impl Prop {
@@ -711,7 +719,7 @@ impl Map {
     }
 
     pub fn add_prop(&mut self, kind: PKind, x: i32, y: i32, w: i32, h: i32, building: Option<usize>) -> usize {
-        self.props.push(Prop { kind, x, y, w, h, building, tint: 1.0, items: Vec::new(), bodies: Vec::new() });
+        self.props.push(Prop { kind, x, y, w, h, building, tint: 1.0, items: Vec::new(), bodies: Vec::new(), rot: 0 });
         self.props.len() - 1
     }
 }

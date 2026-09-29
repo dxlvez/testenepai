@@ -52,7 +52,22 @@ pub struct Mats {
     pub ghost: Handle<StandardMaterial>,
 }
 
-pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex) -> Mats {
+pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex, real: &super::textures::Real) -> Mats {
+    // scanned materials: colour + normal + occlusion/roughness from the ARM map
+    let scan = |m: &mut Assets<StandardMaterial>, p: &super::textures::Pbr, rough: f32| {
+        m.add(StandardMaterial {
+            base_color: Color::WHITE,
+            base_color_texture: Some(p.diff.clone()),
+            normal_map_texture: Some(p.nor.clone()),
+            metallic_roughness_texture: Some(p.arm.clone()),
+            occlusion_texture: Some(p.arm.clone()),
+            perceptual_roughness: rough,
+            metallic: 1.0,
+            reflectance: 0.5,
+            cull_mode: None,
+            ..default()
+        })
+    };
     let base = |m: &mut Assets<StandardMaterial>, t: &(Handle<Image>, Handle<Image>), rough: f32, refl: f32| {
         m.add(StandardMaterial {
             base_color: Color::WHITE,
@@ -66,25 +81,25 @@ pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex) -> Mats {
     };
     let emissive = |m: &mut Assets<StandardMaterial>, e: LinearRgba| m.add(StandardMaterial { base_color: Color::WHITE, emissive: e, cull_mode: None, ..default() });
     Mats {
-        road: base(mats, &tex.cobble, 0.32, 0.5),
-        asphalt: base(mats, &tex.asphalt, 0.4, 0.45),
-        sidewalk: base(mats, &tex.slabs, 0.5, 0.4),
+        road: scan(mats, &real.cobble, 1.0),
+        asphalt: scan(mats, &real.asphalt, 1.0),
+        sidewalk: scan(mats, &real.sidewalk, 1.0),
         stone: base(mats, &tex.grain, 0.6, 0.35),
         matte: base(mats, &tex.grain, 0.95, 0.2),
-        floor: base(mats, &tex.planks, 0.55, 0.35),
-        wall: base(mats, &tex.brick, 0.88, 0.25),
-        plaster: base(mats, &tex.plaster, 0.9, 0.25),
-        roof: base(mats, &tex.tiles, 0.7, 0.3),
+        floor: scan(mats, &real.wood_floor, 1.0),
+        wall: scan(mats, &real.brick, 1.0),
+        plaster: scan(mats, &real.plaster, 1.0),
+        roof: scan(mats, &real.roof_tiles, 1.0),
         roof_flat: base(mats, &tex.asphalt, 0.85, 0.25),
-        brick_yellow: base(mats, &tex.brick_yellow, 0.88, 0.25),
-        stone_wall: base(mats, &tex.stone, 0.8, 0.3),
-        siding: base(mats, &tex.siding, 0.7, 0.3),
-        slate: base(mats, &tex.slate, 0.45, 0.4),
-        grass: base(mats, &tex.grass, 0.9, 0.2),
-        dirt: base(mats, &tex.dirt, 0.95, 0.2),
-        sand: base(mats, &tex.sand, 0.95, 0.2),
-        gravel: base(mats, &tex.gravel, 0.9, 0.25),
-        floor_tiles: base(mats, &tex.floor_tiles, 0.25, 0.5),
+        brick_yellow: scan(mats, &real.brick_yellow, 1.0),
+        stone_wall: scan(mats, &real.stone, 1.0),
+        siding: scan(mats, &real.siding, 1.0),
+        slate: scan(mats, &real.slate, 1.0),
+        grass: scan(mats, &real.grass, 1.0),
+        dirt: scan(mats, &real.dirt, 1.0),
+        sand: scan(mats, &real.sand, 1.0),
+        gravel: scan(mats, &real.gravel, 1.0),
+        floor_tiles: scan(mats, &real.floor_tiles, 1.0),
         wallpaper: base(mats, &tex.wallpaper, 0.85, 0.2),
         leather: base(mats, &tex.leather, 0.5, 0.4),
         furn: base(mats, &tex.grain, 0.6, 0.35),
@@ -342,7 +357,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             }
                         }
                         Tile::Rail => {
-                            stone.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3([0.22, 0.2, 0.19]));
+                            gravel_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3([0.8, 0.78, 0.76]));
                             street.cuboid(Vec3::new(fx + 0.1, 0.02, fz + 0.1), Vec3::new(fx + 0.3, 0.1, fz + 0.9), c3([0.2, 0.14, 0.1]));
                             street.cuboid(Vec3::new(fx + 0.6, 0.02, fz + 0.1), Vec3::new(fx + 0.8, 0.1, fz + 0.9), c3([0.2, 0.14, 0.1]));
                             if y == 1 || y == 2 {
@@ -389,10 +404,10 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 }
             }
             for p in m.props.iter().filter(|p| p.building.is_none() && p.x >= cx && p.x < cx + CH && p.y >= cy && p.y < cy + CH) {
-                let geo = props::build(p.kind, p.w as f32, p.h as f32, p.tint, year, hash2(p.x, p.y, 5), s.tree, s.snow);
+                let (gs, gg) = prop_geo(p, year, &s, s.snow);
                 let off = Vec3::new(p.x as f32, if matches!(m.get(p.x, p.y), Tile::Sidewalk | Tile::Plaza) { 0.12 } else { 0.02 }, p.y as f32);
-                street.append(&geo.solid, off);
-                glow.append(&geo.glow, off);
+                street.append(&gs, off);
+                glow.append(&gg, off);
                 if p.kind == PKind::LampPost {
                     vis.lamps.push(off + Vec3::new(0.5, 3.1, 0.5));
                 }
@@ -499,7 +514,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let trim = c3([fcol[0] * 0.6, fcol[1] * 0.6, fcol[2] * 0.6]);
     let white_trim = c3([0.82, 0.8, 0.76]);
     let wc = c3(fcol);
-    let inner = c3([0.42, 0.38, 0.34]);
+    let inner = c3([0.78, 0.72, 0.64]);
     let beam = c3([0.18, 0.12, 0.08]);
     let is_market = b.kind == BKind::Market;
     let front_top = b.doors.first().map(|d| d.1 == b.y).unwrap_or(true);
@@ -852,10 +867,10 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         }
     }
     for p in m.props.iter().filter(|p| p.building == Some(b.id)) {
-        let geo = props::build(p.kind, p.w as f32, p.h as f32, p.tint, year, hash2(p.x, p.y, 5), s.tree, false);
+        let (gs, gg) = prop_geo(p, year, s, false);
         let off = Vec3::new(p.x as f32, if is_market { 0.12 } else { 0.1 }, p.y as f32);
-        furn.append(&geo.solid, off);
-        glow.append(&geo.glow, off);
+        furn.append(&gs, off);
+        glow.append(&gg, off);
     }
     let mut spawn = |mb: MB, mat: Handle<StandardMaterial>, visible: bool, shadow: bool| -> Entity {
         let has = !mb.is_empty();
@@ -878,7 +893,8 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         WallKind::Plaster => mats.plaster.clone(),
     };
     let full_e = spawn(full, wall_mat.clone(), true, true);
-    let low_e = spawn(low, wall_mat, false, false);
+    let low_e = spawn(low, mats.plaster.clone(), false, false);
+    let _ = &wall_mat;
     let slate_city = matches!(s.arch, Arch::Terrace | Arch::Stone | Arch::Wooden | Arch::Victorian);
     let roof_e = spawn(roof, if !gabled_roof { mats.roof_flat.clone() } else if slate_city { mats.slate.clone() } else { mats.roof.clone() }, true, true);
     let glass_e = spawn(glass, mats.glass_dark.clone(), true, false);
@@ -909,6 +925,34 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         }
     }
     BVis { full: full_e, low: low_e, roof: roof_e, glass: glass_e, cut: false, lit: false, height: hgt }
+}
+
+
+/// Build a prop's geometry in its own orientation and place it on its footprint.
+fn prop_geo(p: &Prop, year: i32, s: &Style, snow: bool) -> (MB, MB) {
+    let odd = p.rot % 2 == 1;
+    let (lw, lh) = if odd { (p.h as f32, p.w as f32) } else { (p.w as f32, p.h as f32) };
+    let geo = props::build(p.kind, lw, lh, p.tint, year, hash2(p.x, p.y, 5), s.tree, snow);
+    if p.rot == 0 && !p.kind.back_neg_z() {
+        return (geo.solid, geo.glow);
+    }
+    // local back is +z (or -z); turn it towards the wall side `rot`
+    let base = [0.0, std::f32::consts::FRAC_PI_2, std::f32::consts::PI, -std::f32::consts::FRAC_PI_2][(p.rot % 4) as usize];
+    let ang = base + if p.kind.back_neg_z() { std::f32::consts::PI } else { 0.0 };
+    let centre = Vec3::new(lw / 2.0, 0.0, lh / 2.0);
+    let mut solid = MB::new();
+    let mut glow = MB::new();
+    let mut shift = |src: &MB, dst: &mut MB| {
+        let mut c = src.clone();
+        for v in c.pos.iter_mut() {
+            v[0] -= centre.x;
+            v[2] -= centre.z;
+        }
+        dst.append_rot(&c, ang, Vec3::new(p.w as f32 / 2.0, 0.0, p.h as f32 / 2.0));
+    };
+    shift(&geo.solid, &mut solid);
+    shift(&geo.glow, &mut glow);
+    (solid, glow)
 }
 
 trait RuinRoof {

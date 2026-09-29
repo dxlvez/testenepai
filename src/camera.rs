@@ -32,7 +32,7 @@ pub struct CamState {
 
 impl Default for CamState {
     fn default() -> Self {
-        CamState { yaw: 0.0, yaw_target: 0.0, dist: 15.5, dist_target: 15.5, focus: Vec3::ZERO, shake: 0.0, pitch: 0.96 }
+        CamState { yaw: std::f32::consts::FRAC_PI_4, yaw_target: std::f32::consts::FRAC_PI_4, dist: 14.0, dist_target: 14.0, focus: Vec3::ZERO, shake: 0.0, pitch: 0.92 }
     }
 }
 
@@ -51,7 +51,7 @@ pub fn spawn_camera(mut c: Commands, settings: Res<crate::keys::Settings>) {
     let mut e = c.spawn((
         Camera3d::default(),
         Camera { hdr: true, ..default() },
-        Projection::Perspective(PerspectiveProjection { fov: 0.66, near: 0.3, far: 160.0, ..default() }),
+        Projection::Perspective(PerspectiveProjection { fov: 0.6, near: 0.3, far: 160.0, ..default() }),
         Tonemapping::TonyMcMapface,
         Bloom { intensity: 0.28, low_frequency_boost: 0.6, ..Bloom::NATURAL },
         DistanceFog {
@@ -96,11 +96,12 @@ pub fn camera_follow(
     mut q: Query<&mut Transform, With<MainCam>>,
     mut wheel: EventReader<bevy::input::mouse::MouseWheel>,
     ui: Res<crate::ui::UiState>,
+    cursor: Res<Cursor>,
 ) {
     let dt = time.delta_secs();
     if !ui.blocks_input() {
         for w in wheel.read() {
-            st.dist_target = (st.dist_target - w.y * 1.5).clamp(8.0, 30.0);
+            st.dist_target = (st.dist_target - w.y * 1.2).clamp(9.0, 22.0);
         }
         if act.just(Action::CamLeft) {
             st.yaw_target -= std::f32::consts::FRAC_PI_2;
@@ -114,9 +115,11 @@ pub fn camera_follow(
     st.yaw += (st.yaw_target - st.yaw) * (dt * 8.0).min(1.0);
     st.dist += (st.dist_target - st.dist) * (dt * 6.0).min(1.0);
     let p = game.player.pos;
-    let target = Vec3::new(p.x, 0.8, p.y);
+    // Diablo IV / PoE: the view leans a little towards where Elias aims or walks
+    let lead = if cursor.valid && !ui.blocks_input() { ((cursor.world - p).clamp_length_max(6.0)) * 0.18 } else { Vec2::ZERO };
+    let target = Vec3::new(p.x + lead.x, 0.8, p.y + lead.y);
     let f = st.focus;
-    st.focus = f + (target - f) * (dt * 7.0).min(1.0);
+    st.focus = f + (target - f) * (dt * 5.0).min(1.0);
     if st.focus.distance(target) > 15.0 {
         st.focus = target;
     }

@@ -32,7 +32,8 @@ use bevy::window::{PresentMode, WindowMode};
 
 fn setup(mut c: Commands, mut images: ResMut<Assets<Image>>, mut mats: ResMut<Assets<StandardMaterial>>) {
     let tex = render::textures::make(&mut images);
-    let m = render::city3d::make_mats(&mut mats, &tex);
+    let real = render::textures::make_real(&mut images);
+    let m = render::city3d::make_mats(&mut mats, &tex, &real);
     c.insert_resource(m);
     c.insert_resource(cases::run::CaseDb(cases::all_cases()));
 }
