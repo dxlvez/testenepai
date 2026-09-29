@@ -857,8 +857,11 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         } else if s.arch == Arch::Stucco {
             rc = [0.55, 0.3, 0.2];
         }
+        let rc_raw = rc;
         let rc = c3(rc);
-        let gabled = matches!(b.kind, BKind::Church | BKind::Barn | BKind::Farmhouse)
+        // flat tar roofs: the dark asphalt texture already carries the tone, so lift the tint
+        let rc_flat = c3([(rc_raw[0] * 2.6).clamp(0.55, 1.0), (rc_raw[1] * 2.6).clamp(0.55, 1.0), (rc_raw[2] * 2.6).clamp(0.55, 1.0)]);
+        let gabled =matches!(b.kind, BKind::Church | BKind::Barn | BKind::Farmhouse)
             || match s.arch {
                 Arch::Village | Arch::Wooden => true,
                 Arch::Terrace => false,
@@ -889,7 +892,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 roof.cuboid(Vec3::new(tx - 0.3, hgt + 8.4, tz + 0.45), Vec3::new(tx + 0.3, hgt + 8.5, tz + 0.55), c3([0.7, 0.6, 0.3]));
             }
         } else {
-            roof.cuboid(Vec3::new(rx0, hgt, rz0), Vec3::new(rx1, hgt + 0.12, rz1), rc);
+            roof.cuboid(Vec3::new(rx0, hgt, rz0), Vec3::new(rx1, hgt + 0.12, rz1), rc_flat);
             roof.cuboid(Vec3::new(rx0, hgt, rz0), Vec3::new(rx1, hgt + 0.45, rz0 + 0.15), trim);
             roof.cuboid(Vec3::new(rx0, hgt, rz1 - 0.15), Vec3::new(rx1, hgt + 0.45, rz1), trim);
             roof.cuboid(Vec3::new(rx0, hgt, rz0), Vec3::new(rx0 + 0.15, hgt + 0.45, rz1), trim);
