@@ -1,0 +1,28 @@
+[package]
+name = "red_thread"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+bevy = { version = "0.16", default-features = false, features = [
+  "std", "serialize", "bevy_asset", "bevy_audio", "bevy_color", "bevy_core_pipeline", "bevy_pbr", "bevy_render",
+  "bevy_state", "bevy_text", "bevy_ui", "bevy_window", "bevy_winit", "bevy_log", "multi_threaded",
+  "tonemapping_luts", "default_font", "x11", "wav", "png", "bevy_gizmos", "smaa_luts", "hdr", "bevy_sprite", "bevy_picking", "bevy_ui_picking_backend", "bevy_mesh_picking_backend"
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = ["Media_SpeechSynthesis", "Storage_Streams", "Foundation", "Foundation_Collections", "Win32_System_WinRT", "Win32_System_Com"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 8
+strip = true
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
