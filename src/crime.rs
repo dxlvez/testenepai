@@ -75,6 +75,8 @@ pub struct CrimeRt {
     pub greeted: Option<usize>,
     /// highest suspicion among people who might notice Elias (HUD eye)
     pub stealth_alert: f32,
+    /// containers already found emptied by their owners (prop index)
+    pub burgled: Vec<usize>,
 }
 
 // ------------------------------------------------------------------ combat
@@ -1102,4 +1104,88 @@ fn friend_home_say(a: &mut crate::sim::agents::Agent, met: bool) {
 
 fn pick(seed: u32, lines: &[&'static str]) -> &'static str {
     lines[(seed as usize).wrapping_mul(2654435761) % lines.len()]
+}
+
+// ------------------------------------------------------------------ burglaries found later
+
+/// When a resident comes home and finds drawers emptied (or a forced door /
+/// broken window), the burglary is reported — but without any description
+/// of the thief unless somebody actually saw him.
+pub fn discover_burglaries(
+    time: Res<Time>,
+    mut game: ResMut<Game>,
+    map: Option<Res<CityMap>>,
+    mut sim: ResMut<Sim>,
+    it: Res<crate::interact::Interact>,
+    mut crt: ResMut<CrimeRt>,
+    mut tick: Local<f32>,
+) {
+    let Some(map) = map else { return };
+    if game.phase != Phase::City {
+        return;
+    }
+    *tick -= time.delta_secs();
+    if *tick > 0.0 {
+        return;
+    }
+    *tick = 2.0;
+    let m = &map.0;
+    let pp = game.player.pos;
+    let player_in = m.building_at(pp);
+    // buildings with emptied containers or forced openings not yet noticed
+    let mut hit: Vec<(usize, Vec<usize>)> = Vec::new();
+    for &pi in &it.searched {
+        if crt.burgled.contains(&pi) {
+            continue;
+        }
+        let Some(b) = m.props.get(pi).and_then(|p| p.building) else { continue };
+        if Some(b) == player_in || game.player.safehouse == Some(b) || game.player.owned.contains(&b) {
+            continue;
+        }
+        match hit.iter_mut().find(|h| h.0 == b) {
+            Some(h) => h.1.push(pi),
+            None => hit.push((b, vec![pi])),
+        }
+    }
+    for (b, props) in hit {
+        // somebody who lives there, at home and awake, notices
+        let Some(ai) = sim.agents.iter().position(|a| {
+            a.active() && a.arrived && a.act != crate::sim::agents::Act::Sleep && m.building_at(a.pos) == Some(b) && game.pop.get(a.pid).home == Some(b)
+        }) else {
+            continue;
+        };
+        crt.burgled.extend(props);
+        let pid = sim.agents[ai].pid;
+        let name = game.pop.get(pid).name();
+        let forced = it.opened.iter().any(|&(x, y)| m.building_at_tile(x, y) == Some(b) && matches!(m.get(x, y), Tile::Window));
+        let a = &mut sim.agents[ai];
+        a.say(pick(pid, &["Não... NÃO! Levaram tudo!", "Quem mexeu nas minhas coisas?!", "Meu Deus, fomos roubados!", "As joias da minha mãe... sumiram!"]), 3.5);
+        a.alert = 1.0;
+        let id = game.police.next_id;
+        game.police.next_id += 1;
+        let (day, minute) = (game.day, game.minute);
+        let place = if m.buildings[b].name.is_empty() { m.buildings[b].address.clone() } else { m.buildings[b].name.clone() };
+        let outfit = game.player.outfit;
+        game.police.crimes.push(Crime {
+            id,
+            kind: CrimeKind::Theft,
+            by_elias: true,
+            victim: Some(pid),
+            pos: m.buildings[b].center_px(),
+            day,
+            minute,
+            weapon: None,
+            outfit,
+            discovered: true,
+            reported: true,
+            witnesses: Vec::new(),
+            body_hidden: false,
+            blood: false,
+            place: place.clone(),
+        });
+        game.police.heat += 2.0;
+        game.news_ticker.push(format!("...casa arrombada em {}. {}. A polícia não tem suspeitos...", place, if forced { "Uma janela foi quebrada" } else { "Nenhum sinal de arrombamento" }));
+        let d = game.day;
+        sim.add_rumor(format!("Roubaram a casa de {} e ninguém viu nada.", name), Some(pid), false, 3, vec![pid], d);
+    }
 }

@@ -58,40 +58,91 @@ pub fn unlock_car(id: u32) {
     }
 }
 
-fn car_mesh(year: i32, color: [f32; 3]) -> MB {
+fn car_mesh(year: i32, color: [f32; 3], id: u32) -> MB {
     let mut m = MB::new();
     let body = c3(color);
-    let dark = c3([0.05, 0.05, 0.06]);
-    let glass = c3([0.12, 0.15, 0.2]);
-    let chrome = c3([0.6, 0.6, 0.62]);
-    // car points along +x, length ~4, width ~1.7
-    let (l, w) = if year < 1935 { (3.6, 1.55) } else if year < 1960 { (4.4, 1.8) } else { (4.3, 1.75) };
-    let hl = l / 2.0;
-    let hw = w / 2.0;
+    let body_d = c3([color[0] * 0.7, color[1] * 0.7, color[2] * 0.7]);
+    let dark = c3([0.04, 0.04, 0.045]);
+    let tyre = c3([0.06, 0.06, 0.06]);
+    let glass = c3([0.1, 0.13, 0.18]);
+    let chrome = c3([0.7, 0.7, 0.72]);
+    let variant = id % 3;
+    // car points along +x
+    let (l, w) = if year < 1935 { (3.6, 1.55) } else if year < 1960 { (4.5, 1.8) } else if year < 1980 { (4.8, 1.85) } else { (4.4, 1.75) };
+    let (hl, hw) = (l / 2.0, w / 2.0);
+    let wr = if year < 1935 { 0.38 } else { 0.33 };
+    let wheel_x = hl * 0.64;
     if year < 1935 {
-        // boxy 1920s tourer
-        m.cuboid(Vec3::new(-hl, 0.35, -hw * 0.8), Vec3::new(hl, 0.8, hw * 0.8), body);
-        m.cuboid(Vec3::new(-hl * 0.6, 0.8, -hw * 0.75), Vec3::new(hl * 0.25, 1.55, hw * 0.75), dark);
-        m.cuboid(Vec3::new(hl * 0.35, 0.8, -hw * 0.5), Vec3::new(hl, 1.0, hw * 0.5), body);
-        // running boards / fenders
-        m.cuboid(Vec3::new(-hl * 0.8, 0.3, -hw), Vec3::new(hl * 0.9, 0.38, -hw * 0.8), dark);
-        m.cuboid(Vec3::new(-hl * 0.8, 0.3, hw * 0.8), Vec3::new(hl * 0.9, 0.38, hw), dark);
-        m.cuboid(Vec3::new(hl * 0.98, 0.5, -0.3), Vec3::new(hl + 0.05, 0.9, 0.3), chrome);
+        // 1920s tourer / sedan: tall cabin, long hood, separate round fenders
+        m.cuboid(Vec3::new(-hl * 0.95, 0.45, -hw * 0.78), Vec3::new(hl * 0.35, 0.95, hw * 0.78), body);
+        m.cuboid(Vec3::new(hl * 0.3, 0.55, -hw * 0.45), Vec3::new(hl * 0.95, 0.95, hw * 0.45), body);
+        m.cuboid(Vec3::new(hl * 0.93, 0.5, -hw * 0.42), Vec3::new(hl + 0.03, 1.0, hw * 0.42), chrome);
+        if variant == 0 {
+            // closed sedan cabin with windows
+            m.cuboid(Vec3::new(-hl * 0.9, 0.95, -hw * 0.76), Vec3::new(hl * 0.25, 1.65, hw * 0.76), body_d);
+            m.cuboid(Vec3::new(-hl * 0.85, 1.1, -hw * 0.77), Vec3::new(hl * 0.2, 1.5, hw * 0.77), glass);
+            m.cuboid(Vec3::new(-hl * 0.92, 1.65, -hw * 0.78), Vec3::new(hl * 0.27, 1.7, hw * 0.78), dark);
+        } else {
+            // open tourer with folded roof and windshield
+            m.cuboid(Vec3::new(hl * 0.22, 0.95, -hw * 0.7), Vec3::new(hl * 0.25, 1.4, hw * 0.7), glass);
+            m.cuboid(Vec3::new(-hl * 0.95, 0.95, -hw * 0.75), Vec3::new(-hl * 0.7, 1.2, hw * 0.75), dark);
+            m.cuboid(Vec3::new(-hl * 0.6, 0.8, -hw * 0.7), Vec3::new(hl * 0.1, 1.05, hw * 0.7), c3([0.3, 0.12, 0.08]));
+        }
+        for sx in [-1.0f32, 1.0] {
+            // fenders + running board
+            for x in [wheel_x, -wheel_x] {
+                m.sphere(Vec3::new(x, wr + 0.12, sx * hw * 0.88), Vec3::new(wr * 1.25, wr * 0.55, 0.18), 10, dark);
+            }
+            m.cuboid(Vec3::new(-wheel_x, 0.38, sx * hw * 0.8 - 0.1), Vec3::new(wheel_x, 0.43, sx * hw * 0.8 + 0.1), dark);
+        }
+        m.cyl_z(Vec3::new(-hl * 0.98, 0.85, 0.0), 0.3, 0.1, 12, tyre, dark);
     } else if year < 1960 {
-        m.cuboid(Vec3::new(-hl, 0.35, -hw), Vec3::new(hl, 0.95, hw), body);
-        m.sphere(Vec3::new(0.0, 0.95, 0.0), Vec3::new(hl * 0.5, 0.55, hw * 0.92), 10, body);
-        m.cuboid(Vec3::new(-hl * 0.35, 1.05, -hw * 0.85), Vec3::new(hl * 0.35, 1.35, hw * 0.85), glass);
-        m.cuboid(Vec3::new(hl - 0.05, 0.4, -hw * 0.8), Vec3::new(hl + 0.05, 0.6, hw * 0.8), chrome);
+        // rounded 40s/50s sedan with fender curves and chrome grille
+        m.sphere(Vec3::new(0.0, 0.68, 0.0), Vec3::new(hl, 0.36, hw), 16, body);
+        m.cuboid(Vec3::new(-hl * 0.95, 0.4, -hw * 0.97), Vec3::new(hl * 0.95, 0.8, hw * 0.97), body);
+        m.sphere(Vec3::new(-hl * 0.15, 1.0, 0.0), Vec3::new(hl * 0.48, 0.42, hw * 0.88), 14, body);
+        m.sphere(Vec3::new(-hl * 0.15, 1.05, 0.0), Vec3::new(hl * 0.44, 0.34, hw * 0.9), 14, glass);
+        m.sphere(Vec3::new(-hl * 0.15, 1.12, 0.0), Vec3::new(hl * 0.4, 0.3, hw * 0.8), 14, body);
+        m.cuboid(Vec3::new(hl * 0.96, 0.4, -hw * 0.85), Vec3::new(hl + 0.06, 0.52, hw * 0.85), chrome);
+        m.cuboid(Vec3::new(-hl - 0.06, 0.4, -hw * 0.85), Vec3::new(-hl * 0.96, 0.52, hw * 0.85), chrome);
+        for k in 0..5 {
+            m.cuboid(Vec3::new(hl * 0.97, 0.55, -0.35 + k as f32 * 0.17), Vec3::new(hl + 0.02, 0.75, -0.3 + k as f32 * 0.17), chrome);
+        }
+        if variant == 2 && year >= 1950 {
+            // two-tone roof and tail fins
+            m.sphere(Vec3::new(-hl * 0.15, 1.18, 0.0), Vec3::new(hl * 0.36, 0.26, hw * 0.75), 12, c3([0.92, 0.9, 0.86]));
+            for sx in [-1.0f32, 1.0] {
+                m.cuboid(Vec3::new(-hl * 0.98, 0.8, sx * hw * 0.8 - 0.05), Vec3::new(-hl * 0.6, 0.98, sx * hw * 0.8 + 0.05), body);
+            }
+        }
+    } else if year < 1980 {
+        // long boxy 60s/70s sedan
+        m.cuboid(Vec3::new(-hl, 0.32, -hw), Vec3::new(hl, 0.82, hw), body);
+        m.cuboid(Vec3::new(-hl * 0.5, 0.82, -hw * 0.9), Vec3::new(hl * 0.25, 1.3, hw * 0.9), if variant == 1 { dark } else { body });
+        m.cuboid(Vec3::new(-hl * 0.48, 0.86, -hw * 0.92), Vec3::new(hl * 0.23, 1.25, hw * 0.92), glass);
+        m.cuboid(Vec3::new(hl * 0.98, 0.35, -hw), Vec3::new(hl + 0.06, 0.5, hw), chrome);
+        m.cuboid(Vec3::new(-hl - 0.06, 0.35, -hw), Vec3::new(-hl * 0.98, 0.5, hw), chrome);
+        m.cuboid(Vec3::new(-hl, 0.6, -hw - 0.01), Vec3::new(hl, 0.63, hw + 0.01), chrome);
     } else {
-        m.cuboid(Vec3::new(-hl, 0.3, -hw), Vec3::new(hl, 0.85, hw), body);
-        m.cuboid(Vec3::new(-hl * 0.45, 0.85, -hw * 0.88), Vec3::new(hl * 0.3, 1.35, hw * 0.88), body);
-        m.cuboid(Vec3::new(-hl * 0.43, 0.9, -hw * 0.9), Vec3::new(hl * 0.28, 1.3, hw * 0.9), glass);
-        m.cuboid(Vec3::new(hl - 0.03, 0.35, -hw * 0.9), Vec3::new(hl + 0.03, 0.5, hw * 0.9), chrome);
+        // 80s/90s: wedge-shaped with bumpers
+        m.cuboid(Vec3::new(-hl, 0.3, -hw), Vec3::new(hl, 0.78, hw), body);
+        m.quad(Vec3::new(hl * 0.2, 1.25, -hw * 0.85), Vec3::new(hl * 0.2, 1.25, hw * 0.85), Vec3::new(hl * 0.62, 0.78, hw * 0.95), Vec3::new(hl * 0.62, 0.78, -hw * 0.95), glass);
+        m.cuboid(Vec3::new(-hl * 0.55, 0.78, -hw * 0.88), Vec3::new(hl * 0.2, 1.28, hw * 0.88), body);
+        m.cuboid(Vec3::new(-hl * 0.53, 0.84, -hw * 0.9), Vec3::new(hl * 0.18, 1.2, hw * 0.9), glass);
+        m.cuboid(Vec3::new(hl * 0.96, 0.28, -hw), Vec3::new(hl + 0.08, 0.45, hw), dark);
+        m.cuboid(Vec3::new(-hl - 0.08, 0.28, -hw), Vec3::new(-hl * 0.96, 0.45, hw), dark);
     }
-    for (x, z) in [(hl * 0.62, hw), (hl * 0.62, -hw), (-hl * 0.62, hw), (-hl * 0.62, -hw)] {
-        m.cylinder(Vec3::new(x, 0.0, z), 0.34, 0.01, 10, dark);
-        // wheels as short fat cylinders lying sideways: approximate with boxes
-        m.cuboid(Vec3::new(x - 0.34, 0.0, z - 0.12), Vec3::new(x + 0.34, 0.66, z + 0.12), dark);
+    // wheels: tyre + rim/hubcap
+    for (x, z) in [(wheel_x, hw * 0.88), (wheel_x, -hw * 0.88), (-wheel_x, hw * 0.88), (-wheel_x, -hw * 0.88)] {
+        m.cyl_z(Vec3::new(x, wr, z), wr, 0.12, 14, tyre, tyre);
+        let rim = if year < 1935 { c3([0.75, 0.2, 0.15]) } else { chrome };
+        m.cyl_z(Vec3::new(x, wr, z + z.signum() * 0.02), wr * 0.55, 0.115, 12, rim, rim);
+        if year < 1935 {
+            for k in 0..8 {
+                let a = k as f32 / 8.0 * std::f32::consts::TAU;
+                m.rod(Vec3::new(x, wr, z + z.signum() * 0.12), Vec3::new(x + a.cos() * wr * 0.9, wr + a.sin() * wr * 0.9, z + z.signum() * 0.12), 0.012, c3([0.85, 0.8, 0.7]));
+            }
+        }
     }
     m
 }
@@ -111,33 +162,101 @@ fn headlights(year: i32) -> MB {
 fn wagon_mesh(color: [f32; 3], id: u32) -> MB {
     let mut m = MB::new();
     let wood = c3([0.35, 0.24, 0.15]);
-    let dark = c3([0.1, 0.08, 0.06]);
-    let horse_col = [[0.32, 0.2, 0.12], [0.12, 0.1, 0.09], [0.55, 0.45, 0.35], [0.7, 0.68, 0.64]][(id % 4) as usize];
+    let wood_d = c3([0.22, 0.14, 0.09]);
+    let dark = c3([0.08, 0.06, 0.05]);
+    let iron = c3([0.15, 0.15, 0.16]);
+    let horse_col = [[0.32, 0.2, 0.12], [0.12, 0.1, 0.09], [0.55, 0.45, 0.35], [0.72, 0.7, 0.66], [0.45, 0.25, 0.12]][(id % 5) as usize];
     let hc = c3(horse_col);
-    // cart
-    m.cuboid(Vec3::new(-1.8, 0.7, -0.75), Vec3::new(0.3, 0.8, 0.75), wood);
-    m.cuboid(Vec3::new(-1.8, 0.8, -0.75), Vec3::new(0.3, 1.2, -0.68), wood);
-    m.cuboid(Vec3::new(-1.8, 0.8, 0.68), Vec3::new(0.3, 1.2, 0.75), wood);
-    m.cuboid(Vec3::new(-1.8, 0.8, -0.75), Vec3::new(-1.72, 1.2, 0.75), wood);
-    // load (crates, ice, vegetables)
-    m.cuboid(Vec3::new(-1.6, 0.8, -0.55), Vec3::new(-0.3, 1.25, 0.55), c3(color));
-    // wheels
-    for (x, z) in [(-1.3, 0.8), (-1.3, -0.8), (0.0, 0.8), (0.0, -0.8)] {
-        m.cuboid(Vec3::new(x - 0.45, 0.0, z - 0.05), Vec3::new(x + 0.45, 0.9, z + 0.05), dark);
+    let mane = c3([horse_col[0] * 0.4, horse_col[1] * 0.4, horse_col[2] * 0.4]);
+    let closed = id % 3 == 0;
+    // cart bed with plank sides
+    m.cuboid(Vec3::new(-1.9, 0.75, -0.78), Vec3::new(0.3, 0.85, 0.78), wood_d);
+    for sz in [-0.78f32, 0.72] {
+        for k in 0..3 {
+            let y = 0.88 + k as f32 * 0.14;
+            m.cuboid(Vec3::new(-1.9, y, sz), Vec3::new(0.3, y + 0.1, sz + 0.06), wood);
+        }
+    }
+    m.cuboid(Vec3::new(-1.9, 0.85, -0.78), Vec3::new(-1.84, 1.28, 0.78), wood);
+    if closed {
+        // covered wagon / delivery van body
+        m.cuboid(Vec3::new(-1.85, 0.85, -0.74), Vec3::new(0.2, 2.0, 0.74), c3(color));
+        m.cuboid(Vec3::new(-1.9, 2.0, -0.8), Vec3::new(0.3, 2.08, 0.8), wood_d);
+    } else {
+        // load: crates, sacks or barrels
+        for i in 0..3 {
+            let x = -1.6 + i as f32 * 0.6;
+            match (id + i) % 3 {
+                0 => m.cuboid(Vec3::new(x, 0.85, -0.5), Vec3::new(x + 0.5, 1.3, 0.1), c3([0.5, 0.38, 0.22])),
+                1 => m.sphere(Vec3::new(x + 0.25, 1.05, 0.25), Vec3::new(0.25, 0.2, 0.3), 8, c3([0.75, 0.68, 0.5])),
+                _ => m.cylinder(Vec3::new(x + 0.25, 0.85, -0.2), 0.22, 0.5, 10, c3([0.35, 0.22, 0.14])),
+            }
+        }
+    }
+    // driver's bench
+    m.cuboid(Vec3::new(0.0, 1.25, -0.6), Vec3::new(0.3, 1.32, 0.6), wood);
+    // spoked wheels
+    for (x, z, r) in [(-1.3f32, 0.86f32, 0.5f32), (-1.3, -0.86, 0.5), (0.05, 0.86, 0.42), (0.05, -0.86, 0.42)] {
+        m.cyl_z(Vec3::new(x, r, z), r, 0.04, 16, iron, wood);
+        m.cyl_z(Vec3::new(x, r, z), r * 0.88, 0.035, 16, wood_d, wood_d);
+        m.cyl_z(Vec3::new(x, r, z), 0.08, 0.08, 8, wood, wood);
+        for k in 0..10 {
+            let a = k as f32 / 10.0 * std::f32::consts::TAU;
+            m.rod(Vec3::new(x, r, z), Vec3::new(x + a.cos() * r * 0.88, r + a.sin() * r * 0.88, z), 0.02, wood);
+        }
     }
     // shafts
-    m.cuboid(Vec3::new(0.3, 0.8, -0.45), Vec3::new(1.8, 0.85, -0.4), wood);
-    m.cuboid(Vec3::new(0.3, 0.8, 0.4), Vec3::new(1.8, 0.85, 0.45), wood);
-    // horse
-    m.cuboid(Vec3::new(1.0, 1.0, -0.28), Vec3::new(2.4, 1.6, 0.28), hc);
-    for (x, z) in [(1.1, -0.2), (1.1, 0.12), (2.2, -0.2), (2.2, 0.12)] {
-        m.cuboid(Vec3::new(x, 0.0, z), Vec3::new(x + 0.12, 1.05, z + 0.1), hc);
-        m.cuboid(Vec3::new(x - 0.01, 0.0, z - 0.01), Vec3::new(x + 0.13, 0.12, z + 0.11), dark);
+    m.rod(Vec3::new(0.3, 0.9, -0.42), Vec3::new(2.1, 1.25, -0.36), 0.03, wood);
+    m.rod(Vec3::new(0.3, 0.9, 0.42), Vec3::new(2.1, 1.25, 0.36), 0.03, wood);
+    // horse: barrel body, chest, rump, neck, head
+    let (hx, hy) = (1.55, 1.35);
+    m.sphere(Vec3::new(hx, hy, 0.0), Vec3::new(0.75, 0.34, 0.3), 14, hc);
+    m.sphere(Vec3::new(hx + 0.55, hy + 0.05, 0.0), Vec3::new(0.3, 0.36, 0.28), 12, hc);
+    m.sphere(Vec3::new(hx - 0.55, hy + 0.05, 0.0), Vec3::new(0.32, 0.36, 0.3), 12, hc);
+    let neck_b = Vec3::new(hx + 0.7, hy + 0.2, 0.0);
+    let neck_t = Vec3::new(hx + 1.05, hy + 0.8, 0.0);
+    for k in 0..5 {
+        let t = k as f32 / 4.0;
+        let p = neck_b.lerp(neck_t, t);
+        m.sphere(p, Vec3::new(0.2 - t * 0.05, 0.22 - t * 0.04, 0.15 - t * 0.03), 10, hc);
     }
-    m.cuboid(Vec3::new(2.3, 1.4, -0.14), Vec3::new(2.7, 2.2, 0.14), hc);
-    m.cuboid(Vec3::new(2.55, 1.9, -0.13), Vec3::new(3.1, 2.15, 0.13), hc);
-    m.cuboid(Vec3::new(2.3, 1.6, -0.05), Vec3::new(2.45, 2.25, 0.05), dark);
-    m.cuboid(Vec3::new(0.9, 1.1, -0.05), Vec3::new(1.05, 1.5, 0.05), dark);
+    // head: skull + muzzle + ears + eyes
+    m.sphere(Vec3::new(hx + 1.15, hy + 0.82, 0.0), Vec3::new(0.18, 0.14, 0.12), 10, hc);
+    m.sphere(Vec3::new(hx + 1.38, hy + 0.62, 0.0), Vec3::new(0.2, 0.1, 0.09), 10, hc);
+    m.sphere(Vec3::new(hx + 1.52, hy + 0.58, 0.0), Vec3::new(0.07, 0.07, 0.08), 8, c3([horse_col[0] * 0.6, horse_col[1] * 0.6, horse_col[2] * 0.6]));
+    for sz in [-0.06f32, 0.06] {
+        m.frustum(Vec3::new(hx + 1.1, hy + 0.93, sz), 0.035, 0.005, 0.13, 6, hc);
+        m.sphere(Vec3::new(hx + 1.24, hy + 0.83, sz * 1.6), Vec3::splat(0.022), 6, c3([0.02, 0.02, 0.02]));
+    }
+    if id % 2 == 0 {
+        // white blaze
+        m.sphere(Vec3::new(hx + 1.3, hy + 0.72, 0.0), Vec3::new(0.14, 0.04, 0.035), 8, c3([0.9, 0.88, 0.84]));
+    }
+    // mane and tail
+    for k in 0..6 {
+        let t = k as f32 / 5.0;
+        let p = neck_b.lerp(neck_t, t) + Vec3::new(-0.1, 0.15, 0.0);
+        m.sphere(p, Vec3::new(0.12, 0.1, 0.05), 6, mane);
+    }
+    m.rod(Vec3::new(hx - 0.85, hy + 0.15, 0.0), Vec3::new(hx - 1.0, hy - 0.5, 0.0), 0.07, mane);
+    m.sphere(Vec3::new(hx - 1.0, hy - 0.55, 0.0), Vec3::new(0.08, 0.14, 0.08), 6, mane);
+    // legs: upper, knee, cannon, hoof (front slightly bent)
+    for (lx, lz, bend) in [(hx + 0.55, -0.16, 0.08f32), (hx + 0.55, 0.16, -0.05), (hx - 0.55, -0.16, -0.06), (hx - 0.55, 0.16, 0.05)] {
+        let top = Vec3::new(lx, hy - 0.15, lz);
+        let knee = Vec3::new(lx + bend, 0.55, lz);
+        let fet = Vec3::new(lx + bend * 0.5, 0.14, lz);
+        m.rod(top, knee, 0.075, hc);
+        m.sphere(knee, Vec3::splat(0.07), 6, hc);
+        m.rod(knee, fet, 0.05, hc);
+        m.sphere(fet + Vec3::new(0.0, 0.03, 0.0), Vec3::new(0.07, 0.06, 0.07), 6, if id % 3 == 1 { c3([0.88, 0.86, 0.82]) } else { hc });
+        m.frustum(Vec3::new(fet.x, 0.0, fet.z), 0.075, 0.065, 0.08, 8, dark);
+    }
+    // harness: collar, straps, blinkers
+    m.sphere(Vec3::new(hx + 0.8, hy + 0.28, 0.0), Vec3::new(0.1, 0.3, 0.25), 10, c3([0.25, 0.14, 0.08]));
+    m.rod(Vec3::new(hx + 0.8, hy + 0.0, -0.28), Vec3::new(hx - 0.5, hy - 0.05, -0.3), 0.02, dark);
+    m.rod(Vec3::new(hx + 0.8, hy + 0.0, 0.28), Vec3::new(hx - 0.5, hy - 0.05, 0.3), 0.02, dark);
+    m.rod(Vec3::new(hx + 1.35, hy + 0.65, -0.1), Vec3::new(0.2, 1.3, -0.3), 0.01, dark);
+    m.rod(Vec3::new(hx + 1.35, hy + 0.65, 0.1), Vec3::new(0.2, 1.3, 0.3), 0.01, dark);
     m
 }
 
@@ -270,7 +389,7 @@ pub fn spawn_cars(mut cars: ResMut<Cars>, game: Res<Game>, map: Option<Res<CityM
         if car.horse {
             car.value = car.value / 3;
         }
-        let mb = if car.horse { wagon_mesh(car.color, car.id) } else { car_mesh(game.year, car.color) };
+        let mb = if car.horse { wagon_mesh(car.color, car.id) } else { car_mesh(game.year, car.color, car.id) };
         let g = if car.horse { lantern_mesh() } else { headlights(game.year) };
         let e = c
             .spawn((Mesh3d(meshes.add(mb.build())), MeshMaterial3d(mats.plain.clone()), Transform::from_xyz(car.pos.x, 0.0, car.pos.y), CarVis(car.id)))

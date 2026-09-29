@@ -141,6 +141,8 @@ pub struct CityVis {
 }
 
 pub const GROUND_H: f32 = 3.2;
+/// inset of the thin walls inside their tile (wall thickness = 1 - 2*WIN)
+pub const WIN: f32 = 0.39;
 pub const FLOOR_H: f32 = 2.7;
 
 /// Number of floors of a building (visual; only the ground floor is playable).
@@ -398,7 +400,8 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let beam = c3([0.18, 0.12, 0.08]);
     let is_market = b.kind == BKind::Market;
     let front_top = b.doors.first().map(|d| d.1 == b.y).unwrap_or(true);
-    let (x0, z0, x1, z1) = (b.x as f32, b.y as f32, (b.x + b.w) as f32, (b.y + b.h) as f32);
+    // walls are thin (WT) and run along the middle of the wall tiles
+    let (x0, z0, x1, z1) = (b.x as f32 + WIN, b.y as f32 + WIN, (b.x + b.w) as f32 - WIN, (b.y + b.h) as f32 - WIN);
     let front_z = if front_top { z0 } else { z1 };
     let out = if front_top { -1.0 } else { 1.0 };
     if !is_market {
@@ -407,37 +410,82 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
             for x in b.x..b.x + b.w {
                 let (fx, fz) = (x as f32, y as f32);
                 let lo = Vec3::new(fx, 0.0, fz);
+                let wallish = |xx: i32, yy: i32| matches!(m.get(xx, yy), Tile::Wall | Tile::Window | Tile::Door) && m.building_at_tile(xx, yy) == Some(b.id);
+                // thin wall piece: a post in the middle plus arms towards the neighbouring wall tiles
+                let arms = |mb: &mut MB, y0: f32, y1: f32, col: [f32; 4]| {
+                    let (a, c) = (WIN, 1.0 - WIN);
+                    mb.cuboid(Vec3::new(fx + a, y0, fz + a), Vec3::new(fx + c, y1, fz + c), col);
+                    if wallish(x + 1, y) {
+                        mb.cuboid(Vec3::new(fx + c, y0, fz + a), Vec3::new(fx + 1.0, y1, fz + c), col);
+                    }
+                    if wallish(x - 1, y) {
+                        mb.cuboid(Vec3::new(fx, y0, fz + a), Vec3::new(fx + a, y1, fz + c), col);
+                    }
+                    if wallish(x, y + 1) {
+                        mb.cuboid(Vec3::new(fx + a, y0, fz + c), Vec3::new(fx + c, y1, fz + 1.0), col);
+                    }
+                    if wallish(x, y - 1) {
+                        mb.cuboid(Vec3::new(fx + a, y0, fz), Vec3::new(fx + c, y1, fz + a), col);
+                    }
+                };
+                let along_x = wallish(x - 1, y) || wallish(x + 1, y);
+                // a slab of the wall line through this tile (for window sills / lintels)
+                let band = |mb: &mut MB, y0: f32, y1: f32, u0: f32, u1: f32, col: [f32; 4]| {
+                    if along_x {
+                        mb.cuboid(Vec3::new(fx + u0, y0, fz + WIN), Vec3::new(fx + u1, y1, fz + 1.0 - WIN), col);
+                    } else {
+                        mb.cuboid(Vec3::new(fx + WIN, y0, fz + u0), Vec3::new(fx + 1.0 - WIN, y1, fz + u1), col);
+                    }
+                };
                 match m.get(x, y) {
                     Tile::Wall => {
-                        full.cuboid(lo, Vec3::new(fx + 1.0, GROUND_H, fz + 1.0), wc);
-                        low.cuboid(lo, Vec3::new(fx + 1.0, low_h, fz + 1.0), inner);
+                        arms(&mut full, 0.0, GROUND_H, wc);
+                        arms(&mut low, 0.0, low_h, inner);
+                        // skirting board inside, cornice line outside
+                        arms(&mut full, 0.0, 0.12, trim);
                         if s.arch == Arch::Village && (x + y) % 2 == 0 {
                             // timber framing
-                            let ez = if y == b.y { fz - 0.01 } else { fz + 1.01 };
+                            let ez = if y == b.y { fz + WIN - 0.01 } else { fz + 1.0 - WIN + 0.01 };
                             if y == b.y || y == b.y + b.h - 1 {
                                 full.cuboid(Vec3::new(fx + 0.45, 0.3, ez - 0.02), Vec3::new(fx + 0.55, GROUND_H, ez + 0.02), beam);
                             }
                         }
                     }
                     Tile::Window => {
-                        full.cuboid(lo, Vec3::new(fx + 1.0, 0.9, fz + 1.0), wc);
-                        full.cuboid(Vec3::new(fx, 2.1, fz), Vec3::new(fx + 1.0, GROUND_H, fz + 1.0), wc);
-                        full.cuboid(Vec3::new(fx, 0.9, fz), Vec3::new(fx + 0.12, 2.1, fz + 1.0), trim);
-                        full.cuboid(Vec3::new(fx + 0.88, 0.9, fz), Vec3::new(fx + 1.0, 2.1, fz + 1.0), trim);
-                        glass.cuboid(Vec3::new(fx + 0.12, 0.9, fz + 0.45), Vec3::new(fx + 0.88, 2.1, fz + 0.55), [1.0, 1.0, 1.0, 1.0]);
-                        let oz = if y == b.y { fz - 0.04 } else { fz + 1.0 };
+                        band(&mut full, 0.0, 0.9, 0.0, 1.0, wc);
+                        band(&mut full, 2.1, GROUND_H, 0.0, 1.0, wc);
+                        band(&mut full, 0.9, 2.1, 0.0, 0.12, trim);
+                        band(&mut full, 0.9, 2.1, 0.88, 1.0, trim);
+                        // sill and mullion
+                        band(&mut full, 0.86, 0.93, 0.06, 0.94, white_trim);
+                        band(&mut full, 1.45, 1.5, 0.12, 0.88, trim);
+                        if along_x {
+                            glass.cuboid(Vec3::new(fx + 0.12, 0.9, fz + 0.47), Vec3::new(fx + 0.88, 2.1, fz + 0.53), [1.0, 1.0, 1.0, 1.0]);
+                        } else {
+                            glass.cuboid(Vec3::new(fx + 0.47, 0.9, fz + 0.12), Vec3::new(fx + 0.53, 2.1, fz + 0.88), [1.0, 1.0, 1.0, 1.0]);
+                        }
+                        let oz = if y == b.y { fz + WIN - 0.04 } else { fz + 1.0 - WIN };
                         match s.arch {
-                            Arch::Creole | Arch::Village | Arch::Wooden => {
+                            Arch::Creole | Arch::Village | Arch::Wooden if along_x => {
                                 let sh = c3([fcol[1] * 0.5, fcol[2] * 0.7, fcol[0] * 0.5]);
                                 full.cuboid(Vec3::new(fx - 0.25, 0.9, oz), Vec3::new(fx + 0.05, 2.1, oz + 0.04), sh);
                                 full.cuboid(Vec3::new(fx + 0.95, 0.9, oz), Vec3::new(fx + 1.25, 2.1, oz + 0.04), sh);
+                                // shutter slats
+                                for k in 0..6 {
+                                    let yy = 1.0 + k as f32 * 0.18;
+                                    full.cuboid(Vec3::new(fx - 0.24, yy, oz - 0.01), Vec3::new(fx + 0.04, yy + 0.03, oz), c3([fcol[1] * 0.4, fcol[2] * 0.55, fcol[0] * 0.4]));
+                                    full.cuboid(Vec3::new(fx + 0.96, yy, oz - 0.01), Vec3::new(fx + 1.24, yy + 0.03, oz), c3([fcol[1] * 0.4, fcol[2] * 0.55, fcol[0] * 0.4]));
+                                }
                                 if s.arch == Arch::Village {
                                     // flower box
                                     full.cuboid(Vec3::new(fx + 0.1, 0.8, oz - 0.15), Vec3::new(fx + 0.9, 0.95, oz + 0.05), beam);
-                                    full.cuboid(Vec3::new(fx + 0.15, 0.95, oz - 0.12), Vec3::new(fx + 0.85, 1.05, oz + 0.02), c3([0.7, 0.1, 0.15]));
+                                    for k in 0..4 {
+                                        let col = [[0.8, 0.1, 0.15], [0.95, 0.5, 0.6], [0.9, 0.8, 0.2], [0.8, 0.1, 0.15]][((seed as i32 + k + x) % 4) as usize];
+                                        full.sphere(Vec3::new(fx + 0.2 + k as f32 * 0.2, 1.0, oz - 0.05), Vec3::splat(0.07), 6, c3(col));
+                                    }
                                 }
                             }
-                            Arch::Stone => {
+                            Arch::Stone if along_x => {
                                 if seed % 4 == 0 {
                                     // boarded window
                                     full.cuboid(Vec3::new(fx + 0.1, 0.95, oz - 0.02), Vec3::new(fx + 0.9, 2.05, oz + 0.02), c3([0.3, 0.24, 0.16]));
@@ -445,11 +493,18 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             }
                             _ => {}
                         }
-                        low.cuboid(lo, Vec3::new(fx + 1.0, low_h, fz + 1.0), inner);
+                        band(&mut low, 0.0, low_h, 0.0, 1.0, inner);
                     }
                     Tile::Door => {
-                        full.cuboid(Vec3::new(fx, 2.3, fz), Vec3::new(fx + 1.0, GROUND_H, fz + 1.0), wc);
-                        full.cuboid(Vec3::new(fx - 0.08, 2.2, fz - 0.05), Vec3::new(fx + 1.08, 2.35, fz + 1.05), trim);
+                        band(&mut full, 2.3, GROUND_H, 0.0, 1.0, wc);
+                        band(&mut full, 2.2, 2.35, -0.08, 1.08, trim);
+                        band(&mut full, 0.0, 2.3, 0.0, 0.07, trim);
+                        band(&mut full, 0.0, 2.3, 0.93, 1.0, trim);
+                        // step
+                        if along_x {
+                            let sz = if y == b.y { fz + WIN - 0.3 } else { fz + 1.0 - WIN };
+                            full.cuboid(Vec3::new(fx - 0.05, 0.0, sz), Vec3::new(fx + 1.05, 0.12, sz + 0.3), c3([0.5, 0.48, 0.45]));
+                        }
                     }
                     _ => {}
                 }
@@ -718,8 +773,9 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let roof_e = spawn(roof, if gabled_roof { mats.roof.clone() } else { mats.roof_flat.clone() }, true, true);
     let glass_e = spawn(glass, mats.glass_dark.clone(), true, false);
     spawn(furn, mats.furn.clone(), true, true);
-    spawn(glow, mats.glow.clone(), true, false);
-    c.entity(full_e).add_child(glass_e);
+    let glow_e = spawn(glow, mats.glow.clone(), true, false);
+    // signs and window glass disappear together with the walls when cut away
+    c.entity(full_e).add_children(&[glass_e, glow_e]);
     if !is_market {
         for &(dx, dy) in &b.doors {
             let axis_x = dy == b.y || dy == b.y + b.h - 1;

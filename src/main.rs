@@ -177,6 +177,7 @@ fn main() {
                 crime::player_combat,
                 crime::hostile_ai,
                 crime::trespass_system,
+                crime::discover_burglaries,
                 crime::process_crimes,
                 crime::police_system,
                 crime::flush_rumors,

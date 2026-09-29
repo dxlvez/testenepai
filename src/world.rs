@@ -105,7 +105,7 @@ pub fn load_city_system(
     db: Res<crate::cases::run::CaseDb>,
     roots: Query<Entity, With<CityRoot>>,
     agents: Query<Entity, With<AgentRoot>>,
-    (mut rt, mut it, mut cars): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>),
+    (mut rt, mut it, mut cars, mut crime_rt): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>, ResMut<crate::crime::CrimeRt>),
 ) {
     if !req.0 {
         return;
@@ -129,6 +129,7 @@ pub fn load_city_system(
             game.player.owned.clear();
             it.opened.clear();
             it.searched.clear();
+            crime_rt.burgled.clear();
         }
         crate::cases::run::prepare_case(&mut game, &mut m, &db);
         populate(&mut game, &mut m, &mut sim);

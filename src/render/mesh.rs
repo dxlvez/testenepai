@@ -247,6 +247,78 @@ impl MB {
         }
     }
 
+    /// Cylinder lying along the Z axis (wheels): centre c, radius r, half width hw.
+    pub fn cyl_z(&mut self, c: Vec3, r: f32, hw: f32, seg: u32, col: [f32; 4], cap: [f32; 4]) {
+        let base = self.pos.len() as u32;
+        for i in 0..=seg {
+            let a = i as f32 / seg as f32 * std::f32::consts::TAU;
+            let (s, co) = a.sin_cos();
+            let n = Vec3::new(co, s, 0.0);
+            for z in [-hw, hw] {
+                let p = c + Vec3::new(co * r, s * r, z);
+                self.pos.push(p.into());
+                self.nrm.push(n.into());
+                self.col.push(col);
+                self.uv.push(world_uv(p, n));
+            }
+        }
+        for i in 0..seg {
+            let a = base + i * 2;
+            self.idx.extend_from_slice(&[a, a + 2, a + 1, a + 1, a + 2, a + 3]);
+        }
+        for (z, nz) in [(-hw, -1.0f32), (hw, 1.0)] {
+            let cb = self.pos.len() as u32;
+            let cc = c + Vec3::new(0.0, 0.0, z);
+            self.pos.push(cc.into());
+            self.nrm.push([0.0, 0.0, nz]);
+            self.col.push(cap);
+            self.uv.push([0.5, 0.5]);
+            for i in 0..=seg {
+                let a = i as f32 / seg as f32 * std::f32::consts::TAU;
+                let p = cc + Vec3::new(a.cos() * r, a.sin() * r, 0.0);
+                self.pos.push(p.into());
+                self.nrm.push([0.0, 0.0, nz]);
+                self.col.push(cap);
+                self.uv.push([0.5, 0.5]);
+            }
+            for i in 0..seg {
+                if nz > 0.0 {
+                    self.idx.extend_from_slice(&[cb, cb + 1 + i, cb + 2 + i]);
+                } else {
+                    self.idx.extend_from_slice(&[cb, cb + 2 + i, cb + 1 + i]);
+                }
+            }
+        }
+    }
+
+    /// Thin rod between two points (spokes, legs, harness straps).
+    pub fn rod(&mut self, a: Vec3, b: Vec3, r: f32, col: [f32; 4]) {
+        let d = b - a;
+        let len = d.length();
+        if len < 1e-4 {
+            return;
+        }
+        let dir = d / len;
+        let side = if dir.y.abs() < 0.9 { dir.cross(Vec3::Y).normalize() } else { dir.cross(Vec3::X).normalize() };
+        let up = side.cross(dir).normalize();
+        let seg = 6;
+        let base = self.pos.len() as u32;
+        for i in 0..=seg {
+            let t = i as f32 / seg as f32 * std::f32::consts::TAU;
+            let n = side * t.cos() + up * t.sin();
+            for p in [a + n * r, b + n * r] {
+                self.pos.push(p.into());
+                self.nrm.push(n.into());
+                self.col.push(col);
+                self.uv.push(world_uv(p, n));
+            }
+        }
+        for i in 0..seg {
+            let k = base + i * 2;
+            self.idx.extend_from_slice(&[k, k + 1, k + 2, k + 1, k + 3, k + 2]);
+        }
+    }
+
     pub fn tri(&mut self, a: Vec3, b: Vec3, c: Vec3, col: [f32; 4]) {
         let n = (b - a).cross(c - a).normalize_or_zero();
         let base = self.pos.len() as u32;

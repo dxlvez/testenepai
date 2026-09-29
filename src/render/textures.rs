@@ -184,10 +184,11 @@ pub fn make(images: &mut Assets<Image>) -> Tex {
     let asphalt = add(
         field(256, |u, v| {
             let n = fbm(u * 64.0, v * 64.0, 64, 21);
-            let crack = (vnoise(u * 6.0, v * 6.0, 6, 22) - 0.5).abs() < 0.012;
-            (if crack { 0.45 } else { 0.72 + n * 0.28 }, if crack { 0.2 } else { 0.5 + n * 0.5 })
+            let patch = vnoise(u * 5.0, v * 5.0, 5, 22);
+            let grit = vnoise(u * 180.0, v * 180.0, 180, 23);
+            (0.7 + n * 0.2 - (patch - 0.5).max(0.0) * 0.25 + grit * 0.08, 0.5 + n * 0.3 + grit * 0.2)
         }),
-        2.5,
+        2.0,
     );
     let grain = add(
         field(256, |u, v| {
