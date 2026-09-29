@@ -192,6 +192,7 @@ pub fn update_hud(
     mut vignette: Query<&mut BackgroundColor, With<HudVignette>>,
     mut mem: ResMut<HudMem>,
     act: Res<crate::keys::Act>,
+    crime_rt: Res<crate::crime::CrimeRt>,
 ) {
     let dt = time.delta_secs();
     let in_world = matches!(ui.mode, Mode::None | Mode::Dialogue);
@@ -269,13 +270,31 @@ pub fn update_hud(
     mem.tick_t -= dt;
     out[7] = Some(if tick.is_empty() || mem.tick_t <= 0.0 { String::new() } else { format!("rádio » {}", tick) });
     let w = game.player.weapon.stats();
-    out[3] = Some(if !rt.weapon_out {
+    let weapon = if !rt.weapon_out {
         String::new()
     } else if w.melee {
         w.name.to_string()
     } else {
         format!("{}  {}/{}", w.name, game.player.mag, game.player.ammo())
-    });
+    };
+    // stealth eye: only while crouched or when someone is getting suspicious
+    let sus = crime_rt.stealth_alert;
+    let stealth = if rt.sneaking || sus > 0.05 {
+        let state = if sus >= 1.0 {
+            "VISTO"
+        } else if sus > 0.35 {
+            "alguém desconfia"
+        } else if sus > 0.05 {
+            "um ruído..."
+        } else {
+            "oculto"
+        };
+        let bar: String = (0..10).map(|i| if (i as f32) < sus.min(1.0) * 10.0 { '█' } else { '░' }).collect();
+        format!("{} furtivo · {}\n{}\n", if sus >= 1.0 { "◉" } else { "◌" }, state, bar)
+    } else {
+        String::new()
+    };
+    out[3] = Some(format!("{}{}", stealth, weapon));
     for (tag, mut t, mut col) in texts.iter_mut() {
         if let Some(Some(s)) = out.get(tag.0 as usize) {
             if **t != *s {

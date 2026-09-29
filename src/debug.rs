@@ -13,6 +13,7 @@ pub fn debug_cmds(
     mut cam: ResMut<CamState>,
     map: Option<Res<crate::world::CityMap>>,
     sim: Res<crate::sim::agents::Sim>,
+    mut settings: ResMut<crate::keys::Settings>,
     (db, mut popups, mut choices, mut ui, mut sfx, mut toasts): (
         Res<crate::cases::run::CaseDb>,
         ResMut<crate::ui::screens::Popups>,
@@ -136,6 +137,9 @@ pub fn debug_cmds(
                     pr.sphere = Some(if n >= 3 { def.anomaly } else { 0 });
                     crate::narrative::resolve_case(&mut game, &db, &mut popups, &mut choices, &mut ui, &mut sfx, &mut toasts);
                 }
+            }
+            "grain" => {
+                settings.grain = v != "0";
             }
             "flag" => {
                 game.flags.insert(v.to_string());

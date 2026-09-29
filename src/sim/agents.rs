@@ -26,12 +26,21 @@ pub enum Act {
     Idle,
     Smuggle,
     Mourn,
+    /// home life
+    Cook,
+    Toilet,
+    Wash,
+    Lounge,
 }
 
 impl Act {
     pub fn label(self) -> &'static str {
         match self {
             Act::Sleep => "dormindo",
+            Act::Cook => "cozinhando",
+            Act::Toilet => "no banheiro",
+            Act::Wash => "se lavando",
+            Act::Lounge => "descansando no sofá",
             Act::Work => "trabalhando",
             Act::Eat => "comendo",
             Act::Drink => "bebendo",
@@ -117,9 +126,16 @@ pub struct Agent {
     pub in_car: bool,
     pub greet_cd: f32,
     pub drunk: f32,
+    /// stealth: how sure this person is that someone is sneaking around (0..1)
+    pub suspicion: f32,
 }
 
 impl Agent {
+    /// In the bathroom (door closed) or asleep: can't see what happens outside.
+    pub fn secluded(&self) -> bool {
+        self.arrived && matches!(self.act, Act::Toilet | Act::Wash | Act::Sleep)
+    }
+
     pub fn new(pid: Pid, pos: Vec2, armed: bool) -> Agent {
         Agent {
             pid,
@@ -153,6 +169,7 @@ impl Agent {
             in_car: false,
             greet_cd: 0.0,
             drunk: 0.0,
+            suspicion: 0.0,
         }
     }
     pub fn active(&self) -> bool {
@@ -264,7 +281,7 @@ pub fn plan(p: &Person, pop: &Population, m: &Map, hour: f32, day: i32, rain: f3
         if (9.0..16.0).contains(&h) && rain < 0.4 {
             return (Act::Play, None);
         }
-        return (Act::Home, home);
+        return (home_chore(p, h, day, wake), home);
     }
     // Sunday mass
     if is_weekend(day) && (8.0..11.0).contains(&h) && p.traits.faith > 45 {
@@ -278,7 +295,7 @@ pub fn plan(p: &Person, pop: &Population, m: &Map, hour: f32, day: i32, rain: f3
                 return (Act::Eat, Some(rs[(seed as usize) % rs.len()]));
             }
         }
-        return (Act::Eat, home);
+        return (home_chore(p, h, day, wake), home);
     }
     // errands in the morning
     if (9.0..12.0).contains(&h) && (seed + day as u32) % 3 == 0 {
@@ -320,7 +337,7 @@ pub fn plan(p: &Person, pop: &Population, m: &Map, hour: f32, day: i32, rain: f3
         if rain < 0.3 && roll < 85 && h < 21.0 {
             return (Act::Stroll, None);
         }
-        return (Act::Home, home);
+        return (home_chore(p, h, day, wake), home);
     }
     // daytime without work
     if rain < 0.4 && (hash2(seed as i32, day, ((h as i32) / 2) as u32) % 3) == 0 {
@@ -329,7 +346,40 @@ pub fn plan(p: &Person, pop: &Population, m: &Map, hour: f32, day: i32, rain: f3
     if p.job == Job::Drifter {
         return (Act::Stroll, None);
     }
-    (Act::Home, home)
+    (home_chore(p, h, day, wake), home)
+}
+
+/// What someone does while at home: never just standing still. Chores
+/// rotate every ~12 minutes of game time, differently for each person.
+fn home_chore(p: &Person, h: f32, day: i32, wake: f32) -> Act {
+    let seed = p.seed;
+    let slot = (h * 5.0) as i32;
+    let r = hash2(seed as i32, day * 131 + slot, 17) % 100;
+    // right after waking: bathroom, then breakfast
+    if h >= wake && h < wake + 0.4 {
+        return if r < 60 { Act::Toilet } else { Act::Wash };
+    }
+    if h >= wake + 0.4 && h < wake + 1.0 {
+        return if r < 55 { Act::Cook } else { Act::Eat };
+    }
+    // before meals someone cooks
+    if (11.3..12.0).contains(&h) || (18.2..19.0).contains(&h) {
+        return if r < 70 { Act::Cook } else { Act::Home };
+    }
+    if (12.0..13.0).contains(&h) || (19.0..20.0).contains(&h) {
+        return Act::Eat;
+    }
+    // evening bath
+    if (20.5..21.5).contains(&h) && r < 25 {
+        return Act::Wash;
+    }
+    match r {
+        0..=9 => Act::Toilet,
+        10..=44 => Act::Lounge,
+        45..=59 => Act::Cook,
+        60..=74 => Act::Eat,
+        _ => Act::Home,
+    }
 }
 
 fn pick_building(m: &Map, k: BKind, seed: u32) -> Option<usize> {
@@ -347,7 +397,11 @@ pub fn spot_for(p: &Person, m: &Map, b: usize, act: Act, rng: &mut Rng) -> (Vec2
     let want = match act {
         Act::Sleep => Some(SpotKind::Bed),
         Act::Work => Some(SpotKind::Work),
-        Act::Eat | Act::Drink | Act::Visit(_) | Act::Home => Some(SpotKind::Seat),
+        Act::Eat | Act::Drink | Act::Visit(_) => Some(SpotKind::Seat),
+        Act::Cook => Some(SpotKind::Cook),
+        Act::Toilet => Some(SpotKind::Toilet),
+        Act::Wash => Some(SpotKind::Wash),
+        Act::Lounge => Some(SpotKind::Lounge),
         Act::Church | Act::Mourn => Some(SpotKind::Pray),
         Act::Party => Some(SpotKind::Stand),
         _ => None,
@@ -380,7 +434,15 @@ pub fn spot_for(p: &Person, m: &Map, b: usize, act: Act, rng: &mut Rng) -> (Vec2
         if !spots.is_empty() {
             let s = spots[rng.idx(spots.len())];
             let pose = match k {
-                SpotKind::Seat => Pose::Sit,
+                SpotKind::Seat | SpotKind::Toilet => Pose::Sit,
+                SpotKind::Cook | SpotKind::Wash => Pose::Work,
+                SpotKind::Lounge => {
+                    if rng.chance(0.4) {
+                        Pose::Lie
+                    } else {
+                        Pose::Sit
+                    }
+                }
                 SpotKind::Pray => Pose::Pray,
                 SpotKind::Work => {
                     if matches!(p.job, Job::Clerk | Job::Journalist | Job::Banker | Job::Police | Job::Lawyer | Job::Hacker | Job::RadioHost) {

@@ -214,6 +214,13 @@ pub enum PKind {
     Hydrant,
     Barrier,
     Sandbags,
+    Toilet,
+    Sink,
+    Nightstand,
+    Armchair,
+    Tv,
+    Fridge,
+    FloorLamp,
 }
 
 impl PKind {
@@ -223,11 +230,11 @@ impl PKind {
     }
     pub fn container(self) -> bool {
         use PKind::*;
-        matches!(self, Wardrobe | Dumpster | Crate | Barrel | Bed | Hay | Safe | Desk | Shelf | Slab)
+        matches!(self, Wardrobe | Dumpster | Crate | Barrel | Bed | Hay | Safe | Desk | Shelf | Slab | Nightstand | Fridge | Sink)
     }
     pub fn hides_body(self) -> bool {
         use PKind::*;
-        matches!(self, Wardrobe | Dumpster | Crate | Bed | Hay | Slab)
+        matches!(self, Wardrobe | Dumpster | Crate | Bed | Hay | Slab | Bathtub)
     }
     pub fn label(self) -> &'static str {
         use PKind::*;
@@ -275,6 +282,13 @@ impl PKind {
             Hydrant => "hidrante",
             Barrier => "cancela",
             Sandbags => "sacos de areia",
+            Toilet => "vaso sanitário",
+            Sink => "pia",
+            Nightstand => "criado-mudo",
+            Armchair => "poltrona",
+            Tv => "televisão",
+            Fridge => "geladeira",
+            FloorLamp => "abajur",
         }
     }
 }
@@ -309,6 +323,11 @@ pub enum SpotKind {
     Pray,
     Stage,
     Guard,
+    /// at home: stove, toilet, sink/tub, sofa
+    Cook,
+    Toilet,
+    Wash,
+    Lounge,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

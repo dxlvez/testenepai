@@ -610,6 +610,154 @@ impl<'a> Ctx<'a> {
         let _ = b;
     }
 
+    /// Stove (+ fridge/icebox) along the back wall with a "cook" spot in front.
+    fn cook_at(&mut self, b: usize, rx: i32, ry: i32, rw: i32, rh: i32, facing_up: bool) {
+        let back = if facing_up { ry + rh - 1 } else { ry };
+        let inward = if facing_up { -1 } else { 1 };
+        if let Some(p) = self.scatter(PKind::Stove, rx, back, rw, 1, 1, 1, b) {
+            let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+            self.spot(b, SpotKind::Cook, px, py + inward);
+            if self.year >= 1920 {
+                self.put(PKind::Fridge, px + 1, py, 1, 1, b).or_else(|| self.put(PKind::Fridge, px - 1, py, 1, 1, b));
+            }
+            if self.rng.chance(0.6) {
+                self.put(PKind::Counter, px - 1, py, 1, 1, b).or_else(|| self.put(PKind::Counter, px + 2, py, 1, 1, b));
+            }
+        }
+    }
+
+    /// A small bathroom walled off in a corner (toilet, tub or basin).
+    fn bath_corner(&mut self, b: usize, rx: i32, ry: i32, rw: i32, rh: i32, facing_up: bool) {
+        if rw < 2 || rh < 4 {
+            // too small for a room: just a toilet in a corner
+            if let Some(p) = self.scatter(PKind::Toilet, rx, ry, rw, rh, 1, 1, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Toilet, px, py);
+            }
+            return;
+        }
+        let bw = rw.min(3);
+        let (by, wall_y) = if facing_up { (ry + rh - 2, ry + rh - 3) } else { (ry, ry + 2) };
+        let bx = rx + rw - bw;
+        // wall with a door gap
+        let gap = bx + self.rng.range(0, bw);
+        for xx in bx..bx + bw {
+            if xx != gap && self.m.get(xx, wall_y) == Tile::Floor {
+                self.m.set(xx, wall_y, Tile::Wall);
+            }
+        }
+        if bw < rw && self.m.get(bx - 1, by) == Tile::Floor {
+            for yy in by..by + 2 {
+                self.m.set(bx - 1, yy, Tile::Wall);
+            }
+        }
+        if let Some(p) = self.scatter(PKind::Toilet, bx, by, bw, 2, 1, 1, b) {
+            let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+            self.spot(b, SpotKind::Toilet, px, py);
+        }
+        if bw >= 2 && self.rng.chance(0.7) {
+            if let Some(p) = self.scatter(PKind::Bathtub, bx, by, bw, 2, 2, 1, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Wash, px, py);
+            }
+        }
+        if let Some(p) = self.scatter(PKind::Sink, bx, by, bw, 2, 1, 1, b) {
+            let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+            self.spot(b, SpotKind::Wash, px, py);
+        }
+    }
+
+    /// A dwelling: kitchen, living corner, bathroom and bedroom, furnished by era and wealth.
+    #[allow(clippy::too_many_arguments)]
+    fn home(&mut self, b: usize, ix: i32, iy: i32, iw: i32, ih: i32, facing_up: bool, rooms: bool) {
+        let rich = self.m.districts.get(self.m.buildings[b].district).map(|d| d.wealth).unwrap_or(0.5) > 0.6;
+        let tv_year = if rich { 1952 } else { 1962 };
+        if rooms {
+            let at = ix + iw / 2;
+            self.partition_v(b, at);
+            let (bx, bw) = (at + 1, ix + iw - at - 1);
+            // bathroom first so the bedroom furniture doesn't block it
+            self.bath_corner(b, bx, iy, bw, ih, facing_up);
+            let beds = if self.rng.chance(0.5) { 2 } else { 1 };
+            for _ in 0..beds {
+                if let Some(p) = self.scatter(PKind::Bed, bx, iy, bw, ih, 1, 2, b) {
+                    let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                    self.spot(b, SpotKind::Bed, px, py);
+                    self.put(PKind::Nightstand, px + 1, py, 1, 1, b).or_else(|| self.put(PKind::Nightstand, px - 1, py, 1, 1, b));
+                }
+            }
+            self.scatter(PKind::Wardrobe, bx, iy, bw, ih, 1, 1, b);
+            if self.rng.chance(0.4) {
+                self.scatter(PKind::Mirror, bx, iy, bw, ih, 1, 1, b);
+            }
+            // kitchen + living room on the left
+            let lw = at - ix;
+            self.cook_at(b, ix, iy, lw, ih, facing_up);
+            if let Some(t) = self.scatter(PKind::Table, ix, iy, lw, ih, 1, 1, b) {
+                let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
+                for (dx, dy) in [(1, 0), (-1, 0), (0, 1)] {
+                    if self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b).is_some() {
+                        self.spot(b, SpotKind::Seat, tx + dx, ty + dy);
+                    }
+                }
+            }
+            if let Some(p) = self.scatter(PKind::Sofa, ix, iy, lw, ih, 2, 1, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Lounge, px, py);
+                self.spot(b, SpotKind::Lounge, px + 1, py);
+            } else if let Some(p) = self.scatter(PKind::Armchair, ix, iy, lw, ih, 1, 1, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Lounge, px, py);
+            }
+            if self.year >= tv_year {
+                self.scatter(PKind::Tv, ix, iy, lw, ih, 1, 1, b);
+            } else if self.year >= 1925 && self.rng.chance(0.7) {
+                self.scatter(PKind::RadioSet, ix, iy, lw, ih, 1, 1, b);
+            }
+            if self.rng.chance(0.5) {
+                self.scatter(PKind::Rug, ix, iy, lw, ih, 2, 1, b);
+            }
+            if self.rng.chance(0.5) {
+                self.scatter(PKind::Shelf, ix, iy, lw, ih, 1, 1, b);
+            }
+            if self.rng.chance(0.4) {
+                self.scatter(PKind::Plant, ix, iy, iw, ih, 1, 1, b);
+            }
+            if self.year >= 1920 && self.rng.chance(0.5) {
+                self.scatter(PKind::FloorLamp, ix, iy, lw, ih, 1, 1, b);
+            }
+        } else {
+            // studio: everything in one room
+            self.cook_at(b, ix, iy, iw, ih, facing_up);
+            if let Some(p) = self.scatter(PKind::Bed, ix, iy, iw, ih, 1, 2, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Bed, px, py);
+                self.put(PKind::Nightstand, px + 1, py, 1, 1, b).or_else(|| self.put(PKind::Nightstand, px - 1, py, 1, 1, b));
+            }
+            if let Some(p) = self.scatter(PKind::Toilet, ix, iy, iw, ih, 1, 1, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Toilet, px, py);
+            }
+            if let Some(t) = self.scatter(PKind::Table, ix, iy, iw, ih, 1, 1, b) {
+                let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
+                if self.put(PKind::Chair, tx + 1, ty, 1, 1, b).or_else(|| self.put(PKind::Chair, tx - 1, ty, 1, 1, b)).is_some() {
+                    let cp = self.m.props.last().map(|p| (p.x, p.y)).unwrap_or((tx, ty));
+                    self.spot(b, SpotKind::Seat, cp.0, cp.1);
+                }
+            }
+            if let Some(p) = self.scatter(PKind::Armchair, ix, iy, iw, ih, 1, 1, b) {
+                let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                self.spot(b, SpotKind::Lounge, px, py);
+            }
+            self.scatter(PKind::Wardrobe, ix, iy, iw, ih, 1, 1, b);
+            if self.year >= tv_year + 5 && self.rng.chance(0.6) {
+                self.scatter(PKind::Tv, ix, iy, iw, ih, 1, 1, b);
+            } else if self.year >= 1925 && self.rng.chance(0.4) {
+                self.scatter(PKind::RadioSet, ix, iy, iw, ih, 1, 1, b);
+            }
+        }
+    }
+
     fn furnish(&mut self, b: usize, facing_up: bool) {
         let bl = self.m.buildings[b].clone();
         let (ix, iy, iw, ih) = (bl.x + 1, bl.y + 1, bl.w - 2, bl.h - 2);
@@ -623,46 +771,10 @@ impl<'a> Ctx<'a> {
         let back = if facing_up { iy + ih - 1 } else { iy };
         match bl.kind {
             BKind::House | BKind::Safehouse => {
-                if iw >= 6 {
-                    let at = ix + iw / 2;
-                    self.partition_v(b, at);
-                    // bedroom on the right
-                    let beds = if self.rng.chance(0.5) { 2 } else { 1 };
-                    for _ in 0..beds {
-                        if let Some(p) = self.scatter(PKind::Bed, at + 1, iy, ix + iw - at - 1, ih, 1, 2, b) {
-                            let pr = &self.m.props[p];
-                            let (px, py) = (pr.x, pr.y);
-                            self.spot(b, SpotKind::Bed, px, py);
-                        }
-                    }
-                    self.scatter(PKind::Wardrobe, at + 1, iy, ix + iw - at - 1, ih, 1, 1, b);
-                    // living room / kitchen on the left
-                    self.scatter(PKind::Stove, ix, back, at - ix, 1, 1, 1, b);
-                    if let Some(t) = self.scatter(PKind::Table, ix, iy, at - ix, ih, 1, 1, b) {
-                        let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
-                        for (dx, dy) in [(1, 0), (-1, 0)] {
-                            if self.put(PKind::Chair, tx + dx, ty + dy, 1, 1, b).is_some() {
-                                self.spot(b, SpotKind::Seat, tx + dx, ty + dy);
-                            }
-                        }
-                    }
-                    if self.year >= 1925 && self.rng.chance(0.6) {
-                        self.scatter(PKind::RadioSet, ix, iy, at - ix, ih, 1, 1, b);
-                    }
-                    if self.rng.chance(0.4) {
-                        self.scatter(PKind::Rug, ix, iy, at - ix, ih, 2, 1, b);
-                    }
-                } else {
-                    if let Some(p) = self.scatter(PKind::Bed, ix, iy, iw, ih, 1, 2, b) {
-                        let (px, py) = (self.m.props[p].x, self.m.props[p].y);
-                        self.spot(b, SpotKind::Bed, px, py);
-                    }
-                    self.scatter(PKind::Table, ix, iy, iw, ih, 1, 1, b);
-                    self.scatter(PKind::Wardrobe, ix, iy, iw, ih, 1, 1, b);
-                }
+                self.home(b, ix, iy, iw, ih, facing_up, iw >= 6);
             }
             BKind::Apartment => {
-                // several tiny units, each with a bed
+                // several small flats, each a studio with its own bed, stove and toilet
                 let units = (iw / 3).max(1);
                 let uw = iw / units;
                 for u in 0..units {
@@ -671,17 +783,13 @@ impl<'a> Ctx<'a> {
                         let gap_y = if facing_up { iy } else { iy + ih - 1 };
                         for yy in iy..iy + ih {
                             if yy != gap_y {
-                                self.m.set(ux - 1 + 1, yy, Tile::Wall);
+                                self.m.set(ux, yy, Tile::Wall);
                             }
                         }
                     }
                     let sx = if u > 0 { ux + 1 } else { ux };
                     let sw = if u > 0 { uw - 1 } else { uw };
-                    if let Some(p) = self.scatter(PKind::Bed, sx, iy, sw, ih, 1, 2, b) {
-                        let (px, py) = (self.m.props[p].x, self.m.props[p].y);
-                        self.spot(b, SpotKind::Bed, px, py);
-                    }
-                    self.scatter(PKind::Wardrobe, sx, iy, sw, ih, 1, 1, b);
+                    self.home(b, sx, iy, sw, ih, facing_up, false);
                 }
             }
             BKind::Bar | BKind::Restaurant | BKind::Club | BKind::Cabaret => {
@@ -868,6 +976,14 @@ impl<'a> Ctx<'a> {
                 }
                 self.scatter(PKind::Safe, ix, iy, iw, ih, 1, 1, b);
                 self.scatter(PKind::Desk, ix, iy, iw, ih, 2, 1, b);
+                // bathroom corner and the kitchen range
+                self.bath_corner(b, at + 1, iy, ix + iw - at - 1, ih, facing_up);
+                self.cook_at(b, ix, iy, iw / 4, ih, facing_up);
+                self.scatter(PKind::Armchair, ix + iw / 4 + 1, iy, at - ix - iw / 4 - 1, ih, 1, 1, b).map(|p| {
+                    let (px, py) = (self.m.props[p].x, self.m.props[p].y);
+                    self.spot(b, SpotKind::Seat, px, py);
+                });
+                self.scatter(PKind::FloorLamp, ix, iy, iw, ih, 1, 1, b);
                 self.spot(b, SpotKind::Work, ix + 1, iy + 1);
             }
             BKind::Station => {
@@ -890,7 +1006,8 @@ impl<'a> Ctx<'a> {
                         self.spot(b, SpotKind::Bed, px, py);
                     }
                 }
-                self.scatter(PKind::Stove, ix, iy, at - ix, ih, 1, 1, b);
+                self.cook_at(b, ix, iy, at - ix, ih, facing_up);
+                self.bath_corner(b, at + 1, iy, ix + iw - at - 1, ih, facing_up);
                 if let Some(t) = self.scatter(PKind::Table, ix, iy, at - ix, ih, 1, 2, b) {
                     let (tx, ty) = (self.m.props[t].x, self.m.props[t].y);
                     for (dx, dy) in [(1, 0), (-1, 0), (1, 1), (-1, 1)] {

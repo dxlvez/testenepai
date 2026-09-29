@@ -14,6 +14,30 @@ pub struct MB {
     pub idx: Vec<u32>,
 }
 
+/// Texture density: one texture repeat every 2 world units.
+const UVS: f32 = 0.5;
+
+/// World-space (planar) UVs so textures keep their real size on any wall,
+/// floor or roof, whatever the box dimensions.
+pub fn world_uv(p: Vec3, n: Vec3) -> [f32; 2] {
+    let a = n.abs();
+    if a.y >= a.x && a.y >= a.z {
+        [p.x * UVS, p.z * UVS]
+    } else if a.z >= a.x {
+        [p.x * UVS, -p.y * UVS]
+    } else {
+        [p.z * UVS, -p.y * UVS]
+    }
+}
+
+/// Tangent matching `world_uv` (for normal maps).
+fn world_tangent(n: Vec3) -> [f32; 4] {
+    let a = n.abs();
+    let t = if a.y >= a.x && a.y >= a.z || a.z >= a.x { Vec3::X } else { Vec3::Z };
+    let t = (t - n * n.dot(t)).normalize_or(Vec3::X);
+    [t.x, t.y, t.z, 1.0]
+}
+
 pub fn c3(c: [f32; 3]) -> [f32; 4] {
     // vertex colours are linear; our palette values are authored in sRGB
     let l = |v: f32| if v <= 0.04045 { v / 12.92 } else { ((v + 0.055) / 1.055).powf(2.4) };
@@ -33,11 +57,11 @@ impl MB {
     pub fn quad(&mut self, a: Vec3, b: Vec3, c: Vec3, d: Vec3, col: [f32; 4]) {
         let n = (b - a).cross(c - a).normalize_or_zero();
         let base = self.pos.len() as u32;
-        for (p, uv) in [(a, [0.0, 0.0]), (b, [1.0, 0.0]), (c, [1.0, 1.0]), (d, [0.0, 1.0])] {
+        for p in [a, b, c, d] {
             self.pos.push(p.into());
             self.nrm.push(n.into());
             self.col.push(col);
-            self.uv.push(uv);
+            self.uv.push(world_uv(p, n));
         }
         self.idx.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
@@ -49,7 +73,7 @@ impl MB {
             self.pos.push([x, y, z]);
             self.nrm.push([0.0, 1.0, 0.0]);
             self.col.push(col);
-            self.uv.push([x * 0.5, z * 0.5]);
+            self.uv.push([x * UVS, z * UVS]);
         }
         self.idx.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
     }
@@ -82,12 +106,8 @@ impl MB {
                 self.nrm.push(*nrm);
                 let shade = if nrm[1] == 0.0 && v[1] <= y0 + 0.001 { 0.78 } else { 1.0 };
                 self.col.push([col[0] * shade, col[1] * shade, col[2] * shade, col[3]]);
-                self.uv.push(match k {
-                    0 => [0.0, 0.0],
-                    1 => [1.0, 0.0],
-                    2 => [1.0, 1.0],
-                    _ => [0.0, 1.0],
-                });
+                let _ = k;
+                self.uv.push(world_uv(Vec3::from(*v), Vec3::from(*nrm)));
             }
             let b = base + n * 4;
             self.idx.extend_from_slice(&[b, b + 1, b + 2, b, b + 2, b + 3]);
@@ -205,6 +225,28 @@ impl MB {
         }
     }
 
+    /// Flat irregular ellipse lying at height y (puddles, stains).
+    pub fn disc(&mut self, c: Vec3, rx: f32, rz: f32, seg: u32, wobble: f32, seed: u32, col: [f32; 4]) {
+        let base = self.pos.len() as u32;
+        self.pos.push(c.into());
+        self.nrm.push([0.0, 1.0, 0.0]);
+        self.col.push(col);
+        self.uv.push(world_uv(c, Vec3::Y));
+        for i in 0..=seg {
+            let a = i as f32 / seg as f32 * std::f32::consts::TAU;
+            let k = i % seg;
+            let w = 1.0 + ((crate::util::hash2(k as i32, seed as i32, 77) & 0xFF) as f32 / 255.0 - 0.5) * wobble;
+            let p = c + Vec3::new(a.cos() * rx * w, 0.0, a.sin() * rz * w);
+            self.pos.push(p.into());
+            self.nrm.push([0.0, 1.0, 0.0]);
+            self.col.push(col);
+            self.uv.push(world_uv(p, Vec3::Y));
+        }
+        for i in 0..seg {
+            self.idx.extend_from_slice(&[base, base + 2 + i, base + 1 + i]);
+        }
+    }
+
     pub fn tri(&mut self, a: Vec3, b: Vec3, c: Vec3, col: [f32; 4]) {
         let n = (b - a).cross(c - a).normalize_or_zero();
         let base = self.pos.len() as u32;
@@ -212,7 +254,7 @@ impl MB {
             self.pos.push(p.into());
             self.nrm.push(n.into());
             self.col.push(col);
-            self.uv.push([0.0, 0.0]);
+            self.uv.push(world_uv(p, n));
         }
         self.idx.extend_from_slice(&[base, base + 1, base + 2]);
     }
@@ -245,7 +287,9 @@ impl MB {
     }
 
     pub fn build(self) -> Mesh {
+        let tan: Vec<[f32; 4]> = self.nrm.iter().map(|n| world_tangent(Vec3::from(*n))).collect();
         Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD)
+            .with_inserted_attribute(Mesh::ATTRIBUTE_TANGENT, tan)
             .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, self.pos)
             .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, self.nrm)
             .with_inserted_attribute(Mesh::ATTRIBUTE_COLOR, self.col)

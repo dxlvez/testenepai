@@ -45,6 +45,9 @@ pub struct EnvState {
     pub light_level_player: f32,
     /// 0..1 fade of the red sight (the world darkens, only the threads glow)
     pub red_fx: f32,
+    /// how wet the streets are (follows the rain slowly, dries slowly)
+    pub wet: f32,
+    pub wet_applied: f32,
 }
 
 pub fn setup_env(mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mut mats: ResMut<Assets<StandardMaterial>>) {
@@ -158,12 +161,13 @@ pub fn update_env(
     mut env: ResMut<EnvState>,
     mut ambient: ResMut<AmbientLight>,
     mut clear: ResMut<ClearColor>,
-    (mut sun, mut lamps, mut inter, mut fogq, mut glass): (
+    (mut sun, mut lamps, mut inter, mut fogq, mut glass, mut fx): (
         Query<(&mut DirectionalLight, &mut Transform), With<Sun>>,
         Query<(&LampLight, &mut PointLight, &mut Transform), (Without<Sun>, Without<InteriorLight>)>,
         Query<(&InteriorLight, &mut PointLight, &mut Transform), (Without<Sun>, Without<LampLight>)>,
         Query<&mut DistanceFog, With<MainCam>>,
         Query<&mut MeshMaterial3d<StandardMaterial>>,
+        Query<(&mut Visibility, Has<crate::render::city3d::LampHalos>), Or<(With<crate::render::city3d::LampHalos>, With<crate::render::city3d::Puddles>)>>,
     ),
     mut mats: ResMut<Assets<StandardMaterial>>,
     settings: Res<crate::keys::Settings>,
@@ -192,7 +196,7 @@ pub fn update_env(
         let dir = Vec3::new(ang.cos() * 0.6, ang.sin().max(0.25), 0.45);
         tr.translation = cam.focus + dir * 40.0;
         tr.look_at(cam.focus, Vec3::Y);
-        let moon = 0.12;
+        let moon = 0.22;
         dl.illuminance = (s * 9000.0 * overcast + (1.0 - s) * 350.0 * moon * 8.0) + flash * 20000.0;
         dl.color = if s > 0.05 {
             Color::srgb(1.0, 0.9 - (1.0 - s) * 0.3, 0.8 - (1.0 - s) * 0.4)
@@ -205,7 +209,7 @@ pub fn update_env(
             dl.color = dl.color.mix(&Color::srgb(1.0, 0.25, 0.25), rf * 0.8);
         }
     }
-    ambient.brightness = (180.0 + amb * 600.0 * overcast + flash * 1500.0) * (1.0 - rf * 0.6);
+    ambient.brightness = (320.0 + amb * 600.0 * overcast + flash * 1500.0) * (1.0 - rf * 0.6);
     ambient.color = Color::srgb(0.5 + redness * 0.4, 0.5 - redness * 0.2, 0.75 - redness * 0.3).mix(&Color::srgb(0.9, 0.15, 0.2), rf * 0.7);
     let sky_c = sky.to_srgba();
     clear.0 = Color::srgb(sky_c.red * overcast + flash * 0.5, sky_c.green * overcast + flash * 0.5, sky_c.blue * overcast + flash * 0.6);
@@ -220,6 +224,30 @@ pub fn update_env(
         fog.color = Color::srgb(c.red * 0.8 + 0.02 + redness * 0.08, c.green * 0.8 + 0.02, c.blue * 0.9 + 0.04).mix(&Color::srgb(0.12, 0.0, 0.02), rf);
         if rf > 0.01 {
             fog.falloff = FogFalloff::Linear { start: start * (1.0 - rf * 0.6), end: end * (1.0 - rf * 0.45) };
+        }
+    }
+
+    // wet streets: shiny when it rains, puddles linger a while after
+    let wet_target = if rain > 0.2 { 1.0 } else { 0.0 };
+    env.wet += (wet_target - env.wet) * (dt * if wet_target > env.wet { 0.2 } else { 0.01 }).min(1.0);
+    if (env.wet - env.wet_applied).abs() > 0.05 {
+        env.wet_applied = env.wet;
+        if let Some(mh) = &mats_h {
+            let w = env.wet;
+            for (h, dry) in [(&mh.road, 0.42), (&mh.asphalt, 0.55), (&mh.sidewalk, 0.6), (&mh.stone, 0.62)] {
+                if let Some(mat) = mats.get_mut(h) {
+                    mat.perceptual_roughness = (dry * (1.0 - w * 0.5)).max(0.24);
+                    mat.reflectance = 0.35 + w * 0.3;
+                }
+            }
+        }
+    }
+    let night_halo = env.darkness > 0.55;
+    for (mut v, is_halo) in fx.iter_mut() {
+        let on = if is_halo { night_halo } else { env.wet > 0.35 };
+        let want = if on { Visibility::Inherited } else { Visibility::Hidden };
+        if *v != want {
+            *v = want;
         }
     }
 

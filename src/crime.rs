@@ -73,6 +73,8 @@ pub struct CrimeRt {
     /// (building, seconds seen inside by a resident, already reported)
     pub trespass: Option<(usize, f32, bool)>,
     pub greeted: Option<usize>,
+    /// highest suspicion among people who might notice Elias (HUD eye)
+    pub stealth_alert: f32,
 }
 
 // ------------------------------------------------------------------ combat
@@ -469,10 +471,12 @@ pub fn process_crimes(
     mut crt: ResMut<CrimeRt>,
     mut toasts: ResMut<Toasts>,
     mut sfx: EventWriter<Sfx>,
+    rt_snapshot: Res<PlayerRt>,
 ) {
     let Some(map) = map else { return };
     let m = &map.0;
     let now = game.abs_minute();
+    let stealth_skill = game.player.skill(Skill::Stealth);
     for e in ev.read() {
         let outfit = game.player.outfit;
         let place = m.building_at(e.pos).map(|b| {
@@ -512,7 +516,7 @@ pub fn process_crimes(
         crt.last_crime = Some(id);
         // who saw / heard it?
         let light = env.light_level_player.max(0.15);
-        let sight = 5.0 + 11.0 * light;
+        let sight_r = 5.0 + 11.0 * light;
         for i in 0..sim.agents.len() {
             let a = &sim.agents[i];
             if !a.active() || Some(a.pid) == e.victim && matches!(a.state, AState::Dead) {
@@ -524,7 +528,9 @@ pub fn process_crimes(
             let d = a.pos.distance(e.pos);
             let asleep = a.act == NAct::Sleep && a.arrived;
             let hear = d < e.noise * if asleep { 0.5 } else { 1.0 };
-            let see = !asleep && d < sight && m.line_clear(a.pos, e.pos, true);
+            // quiet crimes done carefully are harder to notice
+            let careful = if e.noise < 2.0 { stealthiness(&rt_snapshot, stealth_skill) } else { 0.0 };
+            let see = !asleep && sight(a, e.pos, m, light, careful) > 0.05 && d < sight_r;
             if !hear && !see {
                 continue;
             }
@@ -532,7 +538,7 @@ pub fn process_crimes(
             let p = game.pop.get(pid).clone();
             let is_victim = Some(pid) == e.victim;
             if see || is_victim {
-                let conf = ((1.0 - d / sight) * 0.7 + light * 0.3 + if is_victim { 0.3 } else { 0.0 }).clamp(0.1, 1.0);
+                let conf = ((1.0 - d / sight_r) * 0.7 + light * 0.3 + if is_victim { 0.3 } else { 0.0 }).clamp(0.1, 1.0);
                 let loyal = p.elias.trust > 50 || matches!(p.elias.romance, Romance::Dating | Romance::Lovers | Romance::Married | Romance::Engaged);
                 let will = p.traits.morality > 30 && !loyal && !matches!(p.job, Job::Gangster | Job::Smuggler);
                 if let Some(c) = game.police.crimes.iter_mut().find(|c| c.id == id) {
@@ -916,6 +922,45 @@ pub fn player_death(game: Res<Game>, mut crt: ResMut<CrimeRt>, mut popups: ResMu
     }
 }
 
+// ------------------------------------------------------------------ stealth
+
+/// How well an agent sees a point right now (0 = not at all, 1 = plainly).
+/// Takes into account distance, darkness, a ~130° field of view, walls,
+/// people locked in the bathroom or asleep, and how Elias moves.
+pub fn sight(a: &crate::sim::agents::Agent, target: Vec2, m: &Map, light: f32, stealthy: f32) -> f32 {
+    let d = a.pos.distance(target);
+    if a.secluded() {
+        return if d < 1.2 && !(a.act == crate::sim::agents::Act::Sleep) { 1.0 } else { 0.0 };
+    }
+    let range = (3.0 + 11.0 * light.clamp(0.1, 1.0)) * (1.0 - stealthy * 0.55);
+    if d > range || !m.line_clear(a.pos, target, true) {
+        return 0.0;
+    }
+    let to = (target - a.pos).normalize_or_zero();
+    let fwd = Vec2::new(a.facing.cos(), a.facing.sin());
+    let cone = to.dot(fwd);
+    let in_view = cone > -0.35 || d < 1.6 || !matches!(a.state, AState::Normal | AState::Talking);
+    if !in_view {
+        return 0.0;
+    }
+    let edge = if cone > 0.5 { 1.0 } else { 0.55 };
+    ((1.0 - d / range) * 1.4).clamp(0.0, 1.0) * edge
+}
+
+/// How hard Elias is to notice: 0 = walking in plain sight, 1 = crouched in the dark, still.
+pub fn stealthiness(rt: &PlayerRt, skill: u32) -> f32 {
+    let base = if rt.sneaking || (rt.moving == 0.0 && rt.pose == crate::render::character::Pose::Sneak) {
+        0.65
+    } else if rt.moving == 0.0 {
+        0.35
+    } else if rt.running {
+        0.0
+    } else {
+        0.15
+    };
+    (base + skill as f32 * 0.04).min(0.9)
+}
+
 // ------------------------------------------------------------------ trespassing
 
 /// Residents who find Elias inside their home (or a closed shop) react: they
@@ -930,9 +975,11 @@ pub fn trespass_system(
     mut crt: ResMut<CrimeRt>,
     mut crimes: EventWriter<CrimeEv>,
     db: Res<crate::cases::run::CaseDb>,
+    env: Res<EnvState>,
 ) {
     let Some(map) = map else { return };
     let m = &map.0;
+    crt.stealth_alert = 0.0;
     if game.phase != Phase::City || rt.in_car {
         crt.trespass = None;
         return;
@@ -956,42 +1003,66 @@ pub fn trespass_system(
     let now = game.abs_minute();
     let dt = time.delta_secs();
     let hidden = rt.hidden_in.is_some();
+    let stealthy = stealthiness(&rt, game.player.skill(Skill::Stealth));
+    let light = env.light_level_player;
     let mut spotted = false;
     let mut friendly_home = false;
+    let mut max_sus = 0.0f32;
     for a in sim.agents.iter_mut() {
         if !a.active() || m.building_at(a.pos) != Some(b) {
             continue;
         }
         let asleep = a.act == NAct::Sleep && a.arrived;
         let d = a.pos.distance(pp);
-        let sees = !hidden && !asleep && d < 7.0 && m.line_clear(a.pos, pp, true);
-        let hears = asleep && d < rt.noise * 0.6;
-        if !sees && !hears {
-            continue;
-        }
+        let see = if hidden { 0.0 } else { sight(a, pp, m, light, stealthy) };
+        // hearing: running and breaking things carry, sneaking barely does
+        let ear = if asleep { 0.35 } else if a.secluded() { 0.5 } else { 0.8 };
+        let hear = d < rt.noise * ear;
         let p = game.pop.get(a.pid);
         let friend = p.elias.trust > 55 || matches!(p.elias.romance, Romance::Dating | Romance::Lovers | Romance::Engaged | Romance::Married);
         if friend {
-            if crt.greeted != Some(b) {
+            if see > 0.3 && crt.greeted != Some(b) {
                 crt.greeted = Some(b);
                 friend_home_say(a, p.elias.met);
             }
-            friendly_home = true;
+            friendly_home = friendly_home || see > 0.0;
             continue;
         }
         if !matches!(a.state, AState::Normal | AState::Investigate { .. }) {
             continue;
         }
-        spotted = true;
-        if hears {
-            a.state = AState::Investigate { at: pp, until: now + 8.0 };
-            a.arrived = false;
-            a.path.clear();
-            if a.bubble.is_none() {
-                a.say(pick(a.pid, &["Hã? Quem está aí?", "Tem alguém aí embaixo?", "Querido, você ouviu isso?", "Quem anda pela casa a essa hora?"]), 2.5);
+        // suspicion builds up while he is seen or heard, fades when he is gone
+        let gain = see * 1.6 + if hear { 0.6 } else { 0.0 };
+        if gain > 0.0 {
+            a.suspicion = (a.suspicion + gain * dt).min(1.2);
+        } else {
+            a.suspicion = (a.suspicion - dt * 0.12).max(0.0);
+        }
+        max_sus = max_sus.max(a.suspicion);
+        if a.suspicion < 0.35 {
+            continue;
+        }
+        if a.suspicion < 1.0 {
+            // something is off: look, come closer, wake up
+            if a.bubble.is_none() && (a.suspicion - gain * dt) < 0.35 {
+                a.say(pick(a.pid, if asleep { &["Hã? Quem está aí?", "Querido, você ouviu isso?", "Tem alguém lá embaixo?"] } else { &["Hm? Tem alguém aí?", "Que barulho foi esse?", "Olá?", "Quem está aí?"] }), 2.2);
+            }
+            if asleep || a.secluded() {
+                if a.suspicion > 0.7 {
+                    a.state = AState::Investigate { at: pp, until: now + 6.0 };
+                    a.arrived = false;
+                    a.path.clear();
+                }
+            } else {
+                a.facing = (pp - a.pos).y.atan2((pp - a.pos).x);
+                if a.suspicion > 0.6 {
+                    a.state = AState::Investigate { at: pp, until: now + 5.0 };
+                    a.path.clear();
+                }
             }
             continue;
         }
+        spotted = true;
         if a.bubble.is_none() {
             let t = crt.trespass.map(|t| t.1).unwrap_or(0.0);
             let lines: &[&str] = if t < 2.5 {
@@ -1005,9 +1076,10 @@ pub fn trespass_system(
             };
             a.say(pick(a.pid.wrapping_add(t as u32), lines), 2.5);
         }
-        // face him
+        a.facing = (pp - a.pos).y.atan2((pp - a.pos).x);
         a.state = AState::Investigate { at: pp, until: now + 4.0 };
     }
+    crt.stealth_alert = max_sus;
     if friendly_home && !spotted {
         return;
     }

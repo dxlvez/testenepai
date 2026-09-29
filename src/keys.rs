@@ -365,6 +365,13 @@ pub struct Settings {
     pub fog: bool,
     pub grain: bool,
     pub cam_speed: f32,
+    /// 0 = light (MSAA only), 1 = pretty (SSAO + SMAA)
+    #[serde(default = "default_quality")]
+    pub quality: u8,
+}
+
+fn default_quality() -> u8 {
+    1
 }
 
 impl Default for Settings {
@@ -379,6 +386,7 @@ impl Default for Settings {
             fog: true,
             grain: true,
             cam_speed: 1.0,
+            quality: 1,
         }
     }
 }

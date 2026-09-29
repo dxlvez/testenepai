@@ -8,6 +8,9 @@ use crate::render::city3d::CityVis;
 use crate::state::Game;
 use crate::world::CityMap;
 use bevy::core_pipeline::bloom::Bloom;
+use bevy::core_pipeline::smaa::Smaa;
+use bevy::pbr::{ScreenSpaceAmbientOcclusion, ScreenSpaceAmbientOcclusionQualityLevel};
+use bevy::render::view::{ColorGrading, ColorGradingGlobal, ColorGradingSection};
 use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::pbr::{DistanceFog, FogFalloff};
 use bevy::prelude::*;
@@ -29,7 +32,7 @@ pub struct CamState {
 
 impl Default for CamState {
     fn default() -> Self {
-        CamState { yaw: 0.0, yaw_target: 0.0, dist: 19.0, dist_target: 19.0, focus: Vec3::ZERO, shake: 0.0, pitch: 1.08 }
+        CamState { yaw: 0.0, yaw_target: 0.0, dist: 15.5, dist_target: 15.5, focus: Vec3::ZERO, shake: 0.0, pitch: 0.96 }
     }
 }
 
@@ -44,22 +47,45 @@ pub struct Cursor {
     pub rclicked: bool,
 }
 
-pub fn spawn_camera(mut c: Commands) {
-    c.spawn((
+pub fn spawn_camera(mut c: Commands, settings: Res<crate::keys::Settings>) {
+    let mut e = c.spawn((
         Camera3d::default(),
         Camera { hdr: true, ..default() },
-        Projection::Perspective(PerspectiveProjection { fov: 0.62, near: 0.5, far: 200.0, ..default() }),
+        Projection::Perspective(PerspectiveProjection { fov: 0.66, near: 0.3, far: 160.0, ..default() }),
         Tonemapping::TonyMcMapface,
-        Bloom { intensity: 0.22, ..Bloom::NATURAL },
+        Bloom { intensity: 0.28, low_frequency_boost: 0.6, ..Bloom::NATURAL },
         DistanceFog {
             color: Color::srgb(0.03, 0.025, 0.05),
             falloff: FogFalloff::Linear { start: 20.0, end: 60.0 },
             ..default()
         },
-        Msaa::Sample4,
+        // film look: a little contrast, cooler shadows, warm highlights
+        ColorGrading {
+            global: ColorGradingGlobal { post_saturation: 1.08, exposure: 0.15, ..default() },
+            shadows: ColorGradingSection { saturation: 0.9, contrast: 1.05, gamma: 1.02, gain: 1.0, lift: 0.01 },
+            midtones: ColorGradingSection { saturation: 1.05, contrast: 1.08, gamma: 1.0, gain: 1.0, lift: 0.0 },
+            highlights: ColorGradingSection { saturation: 1.1, contrast: 1.0, gamma: 1.0, gain: 1.05, lift: 0.0 },
+        },
         MainCam,
         Transform::from_xyz(0.0, 15.0, 12.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
+    let _ = &mut e;
+    let _ = settings;
+}
+
+/// Applies the graphics quality setting to the camera (live, from the menu).
+pub fn apply_quality(mut c: Commands, settings: Res<crate::keys::Settings>, q: Query<Entity, With<MainCam>>, mut last: Local<Option<u8>>) {
+    if *last == Some(settings.quality) {
+        return;
+    }
+    let Ok(e) = q.single() else { return };
+    *last = Some(settings.quality);
+    if settings.quality >= 1 {
+        // soft contact shadows in corners and under objects + clean edges
+        c.entity(e).insert((Msaa::Off, Smaa::default(), ScreenSpaceAmbientOcclusion { quality_level: ScreenSpaceAmbientOcclusionQualityLevel::Medium, constant_object_thickness: 0.3 }));
+    } else {
+        c.entity(e).remove::<(Smaa, ScreenSpaceAmbientOcclusion)>().insert(Msaa::Sample4);
+    }
 }
 
 pub fn camera_follow(

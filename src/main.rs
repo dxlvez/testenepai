@@ -150,6 +150,7 @@ fn main() {
                 setup,
                 ui::load_fonts,
                 camera::spawn_camera,
+                render::post::setup_post,
                 env::setup_env,
                 audio::setup_audio,
                 audio::start_venue_gen,
@@ -211,6 +212,8 @@ fn main() {
         .add_systems(
             Update,
             (
+                camera::apply_quality,
+                render::post::animate_post,
                 camera::camera_follow,
                 camera::update_cursor,
                 camera::cutaway,

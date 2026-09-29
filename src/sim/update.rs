@@ -300,7 +300,11 @@ pub fn sim_update(time: Res<Time>, mut game: ResMut<Game>, map: Option<Res<CityM
                         a.path.clear();
                     }
                 }
-                sim.agents[i].replan_at = now + 20.0 + rng.rangef(0.0, 25.0);
+                sim.agents[i].replan_at = now + match act {
+                    Act::Toilet => 4.0 + rng.rangef(0.0, 6.0),
+                    Act::Cook | Act::Wash | Act::Home => 10.0 + rng.rangef(0.0, 12.0),
+                    _ => 20.0 + rng.rangef(0.0, 25.0),
+                };
                 sim.agents[i].chat_line = pose as u8;
             } else {
                 sim.agents[i].replan_at = now + 15.0 + rng.rangef(0.0, 15.0);
@@ -353,7 +357,7 @@ pub fn sim_update(time: Res<Time>, mut game: ResMut<Game>, map: Option<Res<CityM
             let a = &sim.agents[i];
             let can_chat = a.chat.is_none()
                 && a.bubble.is_none()
-                && matches!(a.act, Act::Stroll | Act::Drink | Act::Party | Act::Visit(_) | Act::Shop | Act::Eat | Act::Idle | Act::Home | Act::Church)
+                && matches!(a.act, Act::Stroll | Act::Drink | Act::Party | Act::Visit(_) | Act::Shop | Act::Eat | Act::Idle | Act::Home | Act::Church | Act::Lounge | Act::Cook)
                 && game.pop.get(pid).age(year) >= 8;
             if can_chat {
                 let soc = game.pop.get(pid).traits.sociability as f32 / 100.0;
@@ -403,6 +407,15 @@ pub fn sim_update(time: Res<Time>, mut game: ResMut<Game>, map: Option<Res<CityM
 fn pose_for(act: Act, b: Option<usize>, m: &Map, target: Vec2) -> Pose {
     match act {
         Act::Sleep => Pose::Lie,
+        Act::Cook | Act::Wash => Pose::Work,
+        Act::Toilet => Pose::Sit,
+        Act::Lounge => {
+            if (target.x * 7.0 + target.y * 3.0) as i32 % 5 < 2 {
+                Pose::Lie
+            } else {
+                Pose::Sit
+            }
+        }
         Act::Church | Act::Mourn => Pose::Pray,
         Act::Party => {
             if (target.x as i32 + target.y as i32) % 3 == 0 {

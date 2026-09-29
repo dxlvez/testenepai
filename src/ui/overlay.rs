@@ -398,6 +398,10 @@ pub fn pause_input(
             settings.grain = !settings.grain;
             changed_settings = true;
         }
+        "quality" => {
+            settings.quality = if settings.quality >= 1 { 0 } else { 1 };
+            changed_settings = true;
+        }
         _ => {}
     }
     if changed_settings {

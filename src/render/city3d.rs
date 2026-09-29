@@ -16,43 +16,81 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub struct Mats {
     pub road: Handle<StandardMaterial>,
+    pub asphalt: Handle<StandardMaterial>,
+    pub sidewalk: Handle<StandardMaterial>,
     pub stone: Handle<StandardMaterial>,
     pub matte: Handle<StandardMaterial>,
     pub floor: Handle<StandardMaterial>,
     pub wall: Handle<StandardMaterial>,
     pub plaster: Handle<StandardMaterial>,
     pub roof: Handle<StandardMaterial>,
+    pub roof_flat: Handle<StandardMaterial>,
     pub furn: Handle<StandardMaterial>,
+    pub fabric: Handle<StandardMaterial>,
+    pub metal: Handle<StandardMaterial>,
     pub glow: Handle<StandardMaterial>,
     pub glass_lit: Handle<StandardMaterial>,
     pub glass_dark: Handle<StandardMaterial>,
     pub water: Handle<StandardMaterial>,
+    pub puddle: Handle<StandardMaterial>,
+    pub halo: Handle<StandardMaterial>,
     pub red: Handle<StandardMaterial>,
     pub plain: Handle<StandardMaterial>,
+    pub skin: Handle<StandardMaterial>,
     pub neon: Handle<StandardMaterial>,
     pub ghost: Handle<StandardMaterial>,
 }
 
 pub fn make_mats(mats: &mut Assets<StandardMaterial>, tex: &Tex) -> Mats {
-    let base = |m: &mut Assets<StandardMaterial>, t: Option<Handle<Image>>, rough: f32| {
-        m.add(StandardMaterial { base_color: Color::WHITE, base_color_texture: t, perceptual_roughness: rough, reflectance: 0.3, cull_mode: None, ..default() })
+    let base = |m: &mut Assets<StandardMaterial>, t: &(Handle<Image>, Handle<Image>), rough: f32, refl: f32| {
+        m.add(StandardMaterial {
+            base_color: Color::WHITE,
+            base_color_texture: Some(t.0.clone()),
+            normal_map_texture: Some(t.1.clone()),
+            perceptual_roughness: rough,
+            reflectance: refl,
+            cull_mode: None,
+            ..default()
+        })
     };
     let emissive = |m: &mut Assets<StandardMaterial>, e: LinearRgba| m.add(StandardMaterial { base_color: Color::WHITE, emissive: e, cull_mode: None, ..default() });
     Mats {
-        road: base(mats, Some(tex.cobble.clone()), 0.35),
-        stone: base(mats, Some(tex.grain.clone()), 0.45),
-        matte: base(mats, Some(tex.grain.clone()), 0.95),
-        floor: base(mats, Some(tex.planks.clone()), 0.6),
-        wall: base(mats, Some(tex.brick.clone()), 0.9),
-        plaster: base(mats, Some(tex.grain.clone()), 0.92),
-        roof: base(mats, Some(tex.grain.clone()), 0.8),
-        furn: base(mats, Some(tex.grain.clone()), 0.7),
+        road: base(mats, &tex.cobble, 0.32, 0.5),
+        asphalt: base(mats, &tex.asphalt, 0.4, 0.45),
+        sidewalk: base(mats, &tex.slabs, 0.5, 0.4),
+        stone: base(mats, &tex.grain, 0.6, 0.35),
+        matte: base(mats, &tex.grain, 0.95, 0.2),
+        floor: base(mats, &tex.planks, 0.55, 0.35),
+        wall: base(mats, &tex.brick, 0.88, 0.25),
+        plaster: base(mats, &tex.plaster, 0.9, 0.25),
+        roof: base(mats, &tex.tiles, 0.7, 0.3),
+        roof_flat: base(mats, &tex.asphalt, 0.85, 0.25),
+        furn: base(mats, &tex.grain, 0.6, 0.35),
+        fabric: base(mats, &tex.fabric, 0.95, 0.15),
+        metal: mats.add(StandardMaterial { base_color: Color::WHITE, metallic: 0.8, perceptual_roughness: 0.35, cull_mode: None, ..default() }),
         glow: emissive(mats, LinearRgba::rgb(6.0, 4.2, 2.4)),
         glass_lit: emissive(mats, LinearRgba::rgb(2.6, 1.7, 0.8)),
         glass_dark: mats.add(StandardMaterial { base_color: Color::srgb(0.05, 0.06, 0.09), perceptual_roughness: 0.05, reflectance: 0.8, cull_mode: None, ..default() }),
         water: mats.add(StandardMaterial { base_color: Color::srgb(0.02, 0.03, 0.05), perceptual_roughness: 0.04, reflectance: 0.9, cull_mode: None, ..default() }),
+        puddle: mats.add(StandardMaterial {
+            base_color: Color::srgba(0.05, 0.05, 0.06, 0.55),
+            perceptual_roughness: 0.06,
+            reflectance: 1.0,
+            alpha_mode: AlphaMode::Blend,
+            cull_mode: None,
+            ..default()
+        }),
+        halo: mats.add(StandardMaterial {
+            base_color: Color::srgba(0.0, 0.0, 0.0, 0.0),
+            emissive: LinearRgba::rgb(0.12, 0.08, 0.035),
+            alpha_mode: AlphaMode::Add,
+            unlit: true,
+            cull_mode: None,
+            ..default()
+        }),
         red: emissive(mats, LinearRgba::rgb(9.0, 0.3, 0.6)),
-        plain: base(mats, None, 0.8),
+        plain: mats.add(StandardMaterial { base_color: Color::WHITE, perceptual_roughness: 0.75, reflectance: 0.3, cull_mode: None, ..default() }),
+        skin: mats.add(StandardMaterial { base_color: Color::WHITE, perceptual_roughness: 0.55, reflectance: 0.35, cull_mode: None, ..default() }),
         neon: emissive(mats, LinearRgba::rgb(1.0, 1.0, 1.0)),
         ghost: mats.add(StandardMaterial {
             base_color: Color::srgba(0.6, 0.75, 1.0, 0.35),
@@ -86,6 +124,14 @@ pub struct BVis {
     pub lit: bool,
     pub height: f32,
 }
+
+/// Light halos and cones under the street lamps (visible at night).
+#[derive(Component)]
+pub struct LampHalos;
+
+/// Rain puddles on streets and sidewalks (visible when wet).
+#[derive(Component)]
+pub struct Puddles;
 
 #[derive(Resource, Default)]
 pub struct CityVis {
@@ -146,6 +192,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         for cx in (0..m.w).step_by(CH as usize) {
             let mut road = MB::new();
             let mut stone = MB::new();
+            let mut walk = MB::new();
             let mut matte = MB::new();
             let mut floor = MB::new();
             let mut water = MB::new();
@@ -173,7 +220,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                         }
                         Tile::Sidewalk | Tile::Plaza => {
                             let col = if m.get(x, y) == Tile::Plaza { [0.38 + n, 0.35 + n, 0.32 + n] } else if s.arch == Arch::Colonial { [0.45 + n, 0.4 + n, 0.33 + n] } else { [0.33 + n, 0.32 + n, 0.31 + n] };
-                            stone.cuboid(Vec3::new(fx, -0.1, fz), Vec3::new(fx + 1.0, 0.12, fz + 1.0), c3(col));
+                            walk.cuboid(Vec3::new(fx, -0.1, fz), Vec3::new(fx + 1.0, 0.12, fz + 1.0), c3(col));
                             // graffiti tags and trash in the 80s/90s
                             if s.graffiti && hash2(x, y, 13) % 29 == 0 {
                                 stone.floor(fx + 0.1, fz + 0.2, fx + 0.5, fz + 0.5, 0.125, c3([0.8, 0.78, 0.7]));
@@ -259,8 +306,9 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 }
             }
             for (mb, mat, shadow) in [
-                (road, if s.street == Surface::Cobble { mats.road.clone() } else { mats.stone.clone() }, true),
+                (road, if s.street == Surface::Cobble { mats.road.clone() } else { mats.asphalt.clone() }, true),
                 (stone, mats.stone.clone(), true),
+                (walk, mats.sidewalk.clone(), true),
                 (matte, mats.matte.clone(), true),
                 (floor, mats.floor.clone(), true),
                 (water, mats.water.clone(), false),
@@ -284,6 +332,31 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         if !vis.lamps.iter().any(|q| q.distance_squared(p) < 1.0) {
             vis.lamps.push(p);
         }
+    }
+    // halos + soft light cones for every lamp, puddles on streets
+    let mut halos = MB::new();
+    for l in &vis.lamps {
+        halos.sphere(*l, Vec3::splat(0.45), 10, [1.0, 1.0, 1.0, 1.0]);
+    }
+    if !halos.is_empty() {
+        let e = c.spawn((Mesh3d(meshes.add(halos.build())), MeshMaterial3d(mats.halo.clone()), Transform::default(), NotShadowCaster, LampHalos, Visibility::Hidden)).id();
+        c.entity(root).add_child(e);
+    }
+    let mut pud = MB::new();
+    for y in 0..m.h {
+        for x in 0..m.w {
+            let t = m.get(x, y);
+            if !matches!(t, Tile::Road | Tile::Sidewalk | Tile::Plaza | Tile::Alley | Tile::Dirt) || hash2(x, y, 88) % 13 != 0 {
+                continue;
+            }
+            let h = if matches!(t, Tile::Sidewalk | Tile::Plaza) { 0.125 } else { 0.035 };
+            let r = 0.25 + hashf(x, y, 89) * 0.55;
+            pud.disc(Vec3::new(x as f32 + 0.5, h, y as f32 + 0.5), r, r * (0.5 + hashf(x, y, 90) * 0.6), 12, 0.5, hash2(x, y, 91), [1.0, 1.0, 1.0, 1.0]);
+        }
+    }
+    if !pud.is_empty() {
+        let e = c.spawn((Mesh3d(meshes.add(pud.build())), MeshMaterial3d(mats.puddle.clone()), Transform::default(), NotShadowCaster, Puddles, Visibility::Hidden)).id();
+        c.entity(root).add_child(e);
     }
     // Chicago's elevated train track
     if let Some(ex) = m.elevated {
@@ -317,6 +390,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let mut furn = MB::new();
     let mut glow = MB::new();
     let mut roof = MB::new();
+    let mut gabled_roof = false;
     let trim = c3([fcol[0] * 0.6, fcol[1] * 0.6, fcol[2] * 0.6]);
     let white_trim = c3([0.82, 0.8, 0.76]);
     let wc = c3(fcol);
@@ -529,6 +603,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 Arch::Stucco => seed % 4 == 0,
                 _ => false,
             };
+        gabled_roof = gabled;
         if gabled {
             let steep = matches!(s.arch, Arch::Village | Arch::Wooden) || b.kind == BKind::Church;
             let rise = ((rz1 - rz0).min(rx1 - rx0) * if steep { 0.6 } else { 0.35 }).min(if steep { 4.0 } else { 2.5 });
@@ -640,7 +715,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let wall_mat = if matches!(s.arch, Arch::Brick | Arch::Terrace | Arch::HighRise) && !matches!(b.kind, BKind::Church | BKind::Police | BKind::Bank) { mats.wall.clone() } else { mats.plaster.clone() };
     let full_e = spawn(full, wall_mat.clone(), true, true);
     let low_e = spawn(low, wall_mat, false, false);
-    let roof_e = spawn(roof, mats.roof.clone(), true, true);
+    let roof_e = spawn(roof, if gabled_roof { mats.roof.clone() } else { mats.roof_flat.clone() }, true, true);
     let glass_e = spawn(glass, mats.glass_dark.clone(), true, false);
     spawn(furn, mats.furn.clone(), true, true);
     spawn(glow, mats.glow.clone(), true, false);

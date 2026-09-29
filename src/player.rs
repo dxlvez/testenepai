@@ -159,7 +159,8 @@ pub fn player_move(
         speed = speed.min(1.6);
     }
     rt.running = running && dir != Vec2::ZERO;
-    rt.sneaking = sneaking && dir != Vec2::ZERO;
+    // crouched even when standing still (stealth mode)
+    rt.sneaking = sneaking;
     if dir != Vec2::ZERO {
         let d = dir.normalize();
         let np = game.player.pos + d * speed * dt;
@@ -216,11 +217,11 @@ pub fn player_move(
         Pose::Aim
     } else if rt.action_lock > 0.0 {
         rt.pose
+    } else if sneaking {
+        Pose::Sneak
     } else if rt.moving > 0.0 {
         if running {
             Pose::Run
-        } else if sneaking {
-            Pose::Sneak
         } else {
             Pose::Walk
         }

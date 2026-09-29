@@ -53,7 +53,8 @@ pub fn build_pause(ui: &UiState, settings: &Settings, binds: &Bindings, saves: &
                     toggle("Tela cheia", settings.fullscreen, "fullscreen"),
                     toggle("Sombras", settings.shadows, "shadows"),
                     toggle("Neblina", settings.fog, "fog"),
-                    toggle("Granulação de filme", settings.grain, "grain"),
+                    toggle("Granulação de filme e vinheta", settings.grain, "grain"),
+                    toggle("Gráficos bonitos (sombreamento suave, bordas limpas)", settings.quality >= 1, "quality"),
                     space(8.0),
                     btn("back", "Voltar"),
                 ])
