@@ -164,12 +164,13 @@ pub fn find_target(
     }
     for car in cars.list.iter() {
         if car.pos.distance(pp) < 2.2 {
-            let label = if car.driver.is_some() {
-                "Tirar o motorista do carro"
-            } else if car.owner_elias || !car.locked {
-                "Entrar no carro"
-            } else {
-                "Carro trancado"
+            let label = match (car.horse, car.driver.is_some(), car.owner_elias || !car.locked) {
+                (false, true, _) => "Tirar o motorista do carro",
+                (false, false, true) => "Entrar no carro",
+                (false, false, false) => "Carro trancado",
+                (true, true, _) => "Tirar o cocheiro da carroça",
+                (true, false, true) => "Subir na carroça",
+                (true, false, false) => "Carroça amarrada",
             };
             consider(score(car.pos) + 0.3, Target::Car(car.id), format!("[{}] {}", e, label));
         }
