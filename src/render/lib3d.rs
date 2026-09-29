@@ -84,7 +84,7 @@ impl Lib {
         let mut cache = self.cache.lock().ok()?;
         let h = cache
             .entry(chosen.file.clone())
-            .or_insert_with(|| self.server.load(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/props/{}", chosen.file))))
+            .or_insert_with(|| self.server.load_with_settings(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/props/{}", chosen.file)), gpu_only_textures))
             .clone();
         Some((chosen.clone(), h))
     }
@@ -93,6 +93,11 @@ impl Lib {
     pub fn path(file: &str) -> String {
         format!("embedded://red_thread/models/props/{}", file)
     }
+}
+
+/// Textures of glTF models live only on the GPU once uploaded (no second copy in RAM).
+pub fn gpu_only_textures(s: &mut bevy::gltf::GltfLoaderSettings) {
+    s.load_materials = bevy::asset::RenderAssetUsages::RENDER_WORLD;
 }
 
 /// Registers the embedded files as `embedded://red_thread/models/...` assets.

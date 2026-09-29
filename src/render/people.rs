@@ -94,7 +94,7 @@ pub fn load_people(mut c: Commands, a: Res<AssetServer>, mut graphs: ResMut<Asse
     if chars.is_empty() {
         return;
     }
-    let scenes = chars.iter().map(|ch| a.load(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/people/{}", ch.file)))).collect();
+    let scenes = chars.iter().map(|ch| a.load_with_settings(GltfAssetLabel::Scene(0).from_asset(format!("embedded://red_thread/models/people/{}", ch.file)), super::lib3d::gpu_only_textures)).collect();
     let names = ["idle", "walk", "run", "sneak", "sit", "lie", "dead", "aim", "punch", "carry", "drag", "talk", "pray", "work", "dance", "cower", "play", "drink", "hands_up"];
     let mut graph = AnimationGraph::new();
     let mut clips = HashMap::new();

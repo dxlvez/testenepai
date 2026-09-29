@@ -262,7 +262,7 @@ pub fn animate_real_horses(
         let Some(pe) = h.player else {
             let Some(pe) = find_player(e, &has_player, &kids) else { continue };
             let path = super::lib3d::Lib::path(&h.file);
-            let clips = [h.idle, h.walk, h.trot].map(|i| a.load(GltfAssetLabel::Animation(i).from_asset(path.clone())));
+            let clips = [h.idle, h.walk, h.trot].map(|i| a.load_with_settings(GltfAssetLabel::Animation(i).from_asset(path.clone()), super::lib3d::gpu_only_textures));
             let (graph, nodes) = AnimationGraph::from_clips(clips);
             h.nodes = [nodes[0], nodes[1], nodes[2]];
             c.entity(pe).insert((AnimationGraphHandle(graphs.add(graph)), AnimationTransitions::new()));
