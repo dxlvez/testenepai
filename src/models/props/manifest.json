@@ -293,16 +293,16 @@
   "file": "wooden_display_shelves_01.glb",
   "category": "shelf",
   "size": [
-   0.372,
+   1.078,
    1.556,
-   1.078
+   0.372
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "shop",
   "triangles": 3174,
-  "bytes": 346592,
+  "bytes": 346944,
   "source": "wooden_display_shelves_01"
  },
  {
@@ -1305,7 +1305,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 8985,
-  "bytes": 474040,
+  "bytes": 473912,
   "source": "alarm_clock_01"
  },
  {
@@ -1644,8 +1644,8 @@
   "min_year": 1900,
   "max_year": 2001,
   "style": "home",
-  "triangles": 60000,
-  "bytes": 3536356,
+  "triangles": 56999,
+  "bytes": 2953196,
   "source": "potted_plant_01"
  },
  {
@@ -1654,15 +1654,15 @@
   "category": "plant",
   "size": [
    0.701,
-   0.841,
+   0.842,
    0.657
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "home",
-  "triangles": 59999,
-  "bytes": 2872040,
+  "triangles": 24941,
+  "bytes": 1566196,
   "source": "potted_plant_02"
  },
  {
@@ -2452,16 +2452,16 @@
   "file": "jacaranda_tree.glb",
   "category": "tree",
   "size": [
-   24.419,
-   19.422,
-   18.714
+   24.469,
+   19.399,
+   19.349
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
   "triangles": 60000,
-  "bytes": 7390080,
+  "bytes": 7941160,
   "source": "jacaranda_tree"
  },
  {
@@ -2469,16 +2469,16 @@
   "file": "island_tree_01.glb",
   "category": "tree",
   "size": [
-   4.712,
-   4.996,
-   4.732
+   4.774,
+   5.004,
+   4.806
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 60000,
-  "bytes": 5930480,
+  "triangles": 57000,
+  "bytes": 5824064,
   "source": "island_tree_01"
  },
  {
@@ -2486,16 +2486,16 @@
   "file": "tree_small_02.glb",
   "category": "tree",
   "size": [
-   2.69,
-   4.56,
-   4.226
+   2.916,
+   4.567,
+   4.296
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 59999,
-  "bytes": 5253004,
+  "triangles": 56999,
+  "bytes": 7565852,
   "source": "tree_small_02"
  },
  {
@@ -2503,16 +2503,16 @@
   "file": "fir_tree_01.glb",
   "category": "tree",
   "size": [
-   6.292,
-   14.527,
-   6.037
+   6.356,
+   14.55,
+   6.163
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 60000,
-  "bytes": 3971580,
+  "triangles": 56998,
+  "bytes": 4646312,
   "source": "fir_tree_01"
  },
  {
@@ -2520,34 +2520,17 @@
   "file": "pine_tree_01.glb",
   "category": "tree",
   "size": [
-   7.088,
-   14.56,
-   7.426
+   7.381,
+   14.843,
+   7.686
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 59999,
-  "bytes": 4527344,
+  "triangles": 56411,
+  "bytes": 5991588,
   "source": "pine_tree_01"
- },
- {
-  "id": "shrub_01",
-  "file": "shrub_01.glb",
-  "category": "shrub",
-  "size": [
-   2.587,
-   0.396,
-   0.218
-  ],
-  "wall_mount": false,
-  "min_year": 1900,
-  "max_year": 2001,
-  "style": "nature",
-  "triangles": 60000,
-  "bytes": 3700236,
-  "source": "shrub_01"
  },
  {
   "id": "shrub_02_a",

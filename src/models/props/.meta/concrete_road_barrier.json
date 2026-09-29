@@ -1,1 +1,0 @@
-{"id": "concrete_road_barrier", "file": "concrete_road_barrier.glb", "source": "concrete_road_barrier", "category": "barrier", "size": [1.545, 0.831, 0.639], "wall_mount": false, "min_year": 1950, "max_year": 2001, "style": "street", "triangles": 60000, "bytes": 2054912, "source_triangles": 60928, "reduced": true, "texture_px": 1024, "oriented": false}
