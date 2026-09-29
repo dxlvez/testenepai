@@ -61,6 +61,28 @@ pub fn debug_cmds(
                     }
                 }
             }
+            "tpgrass" => {
+                // teleport to the lushest lawn (most grass tiles around it)
+                if let Some(m) = &map {
+                    let m = &m.0;
+                    let mut best = (0, 0, 0);
+                    for y in (4..m.h - 4).step_by(2) {
+                        for x in (4..m.w - 4).step_by(2) {
+                            let mut n = 0;
+                            for dy in -4..=4 {
+                                for dx in -4..=4 {
+                                    n += (m.get(x + dx, y + dy) == crate::city::map::Tile::Grass) as i32;
+                                }
+                            }
+                            if n > best.0 {
+                                best = (n, x, y);
+                            }
+                        }
+                    }
+                    game.player.pos = m.nearest_open(Vec2::new(best.1 as f32 + 0.5, best.2 as f32 + 0.5));
+                    cam.focus = Vec3::new(game.player.pos.x, 0.8, game.player.pos.y);
+                }
+            }
             "tpin" => {
                 if let Some(m) = &map {
                     let k = v.to_lowercase();

@@ -308,6 +308,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
             let mut water = MB::new();
             let mut street = MB::new();
             let mut glow = MB::new();
+            let mut blades = MB::new();
             for y in cy..(cy + CH).min(m.h) {
                 for x in cx..(cx + CH).min(m.w) {
                     let (fx, fz) = (x as f32, y as f32);
@@ -341,6 +342,23 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             // the texture carries the colour; the city's grass tone nudges it (dry Adelaide, lush Bergen)
                             let k = [0.75 + grass[0] * 0.8 + n, 0.8 + grass[1] * 0.5 + n, 0.75 + grass[2] * 0.8 + n];
                             grass_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(if s.snow { [1.6, 1.6, 1.7] } else { k }));
+                            if !s.snow {
+                                // tufts of real blades so lawns read as grass, not a painted floor
+                                let lush = 0.8 + hashf(x, y, 21) * 0.4;
+                                for t in 0..9 {
+                                    let tx = fx + 0.08 + hashf(x * 7 + t, y, 22) * 0.84;
+                                    let tz = fz + 0.08 + hashf(x, y * 7 + t, 23) * 0.84;
+                                    let dry = hashf(x + t, y - t, 24);
+                                    let tip = [(grass[0] * 1.5 + dry * 0.12) * lush, (grass[1] * 1.35 + dry * 0.05) * lush, grass[2] * 1.1 * lush];
+                                    let root = [grass[0] * 0.35, grass[1] * 0.4, grass[2] * 0.3];
+                                    for b in 0..3 {
+                                        let yaw = hashf(x * 3 + t, y * 5 + b, 25) * 6.28;
+                                        let lean = Vec2::new(yaw.sin(), yaw.cos()) * (0.03 + hashf(t, b, (x + y) as u32) * 0.07);
+                                        let h = (0.12 + hashf(x + b, y + t, 26) * 0.16) * lush;
+                                        blades.blade(Vec3::new(tx, 0.02, tz), lean, h, 0.035, yaw, c3(root), c3(tip));
+                                    }
+                                }
+                            }
                         }
                         Tile::Sand => sand_mb.floor(fx, fz, fx + 1.0, fz + 1.0, 0.01, c3([0.95 + n, 0.95 + n, 0.95 + n])),
                         Tile::Dirt => {
@@ -356,8 +374,18 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                             let base = if s.snow { [0.7 + n, 0.72 + n, 0.75 + n] } else { [0.2 + n, 0.16 + n, 0.1 + n] };
                             matte.floor(fx, fz, fx + 1.0, fz + 1.0, 0.02, c3(base));
                             if !s.snow {
-                                let crop = if y % 2 == 0 { [0.3, 0.3, 0.12] } else { [0.22, 0.26, 0.1] };
-                                matte.cuboid(Vec3::new(fx + 0.1, 0.0, fz + 0.3), Vec3::new(fx + 0.9, 0.35 + n * 3.0, fz + 0.7), c3(crop));
+                                // a furrowed row of crop stalks (wheat-gold or green, by field)
+                                let wheat = (x / 9 + y / 7) % 2 == 0;
+                                let (root, tip) = if wheat { ([0.25, 0.2, 0.08], [0.75, 0.6, 0.28]) } else { ([0.08, 0.14, 0.04], [0.3, 0.45, 0.12]) };
+                                matte.cuboid(Vec3::new(fx + 0.15, 0.0, fz + 0.35), Vec3::new(fx + 0.85, 0.06, fz + 0.65), c3([0.16, 0.12, 0.08]));
+                                for t in 0..14 {
+                                    let tx = fx + 0.05 + t as f32 * 0.066;
+                                    let tz = fz + 0.5 + (hashf(x * 5 + t, y, 27) - 0.5) * 0.2;
+                                    let yaw = hashf(x + t, y, 28) * 6.28;
+                                    let h = 0.45 + hashf(x, y + t, 29) * 0.3 + n;
+                                    blades.blade(Vec3::new(tx, 0.02, tz), Vec2::new(yaw.cos(), yaw.sin()) * 0.06, h, 0.04, yaw, c3(root), c3(tip));
+                                    blades.blade(Vec3::new(tx + 0.02, 0.02, tz), Vec2::new(-yaw.sin(), yaw.cos()) * 0.08, h * 0.85, 0.03, yaw + 1.6, c3(root), c3(tip));
+                                }
                             }
                         }
                         Tile::Water => {
@@ -446,6 +474,7 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 (water, mats.water.clone(), false),
                 (street, mats.furn.clone(), true),
                 (glow, mats.glow.clone(), false),
+                (blades, mats.plain.clone(), false),
             ] {
                 if mb.is_empty() {
                     continue;
@@ -456,6 +485,40 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 }
                 let id = e.id();
                 c.entity(root).add_child(id);
+            }
+        }
+    }
+    // real shrubs along lawn edges, ferns and wild flowers inside them
+    if let (Some(lib), false) = (lib, s.snow) {
+        let mut placed = 0;
+        'nature: for y in 1..m.h - 1 {
+            for x in 1..m.w - 1 {
+                if placed >= 260 {
+                    break 'nature;
+                }
+                if m.get(x, y) != Tile::Grass || m.blocked(x, y) {
+                    continue;
+                }
+                let edge = [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|(dx, dy)| m.get(x + dx, y + dy) != Tile::Grass);
+                let hsh = hash2(x, y, 4242);
+                let (cat, target) = if edge && hsh % 5 == 0 {
+                    ("shrub", 0.7 + (hsh % 7) as f32 * 0.1)
+                } else if !edge && hsh % 13 == 0 {
+                    (["flower", "plant", "grass", "flower"][(hsh / 13 % 4) as usize], 0.3 + (hsh % 5) as f32 * 0.06)
+                } else {
+                    continue;
+                };
+                let cat = if cat == "plant" { "shrub" } else { cat };
+                let Some((e, h)) = lib.pick(cat, year, hsh, None) else { continue };
+                if e.id.starts_with("potted") || e.id.starts_with("planter") {
+                    continue;
+                }
+                let k = (target / e.size[1].max(0.05)).clamp(0.5, 4.0);
+                let at = Vec3::new(x as f32 + 0.3 + hashf(x, y, 43) * 0.4, 0.02, y as f32 + 0.3 + hashf(x, y, 44) * 0.4);
+                let tr = Transform::from_translation(at).with_rotation(Quat::from_rotation_y((hsh % 32) as f32 * 0.2)).with_scale(Vec3::splat(k));
+                let ent = c.spawn((SceneRoot(h), tr)).id();
+                c.entity(root).add_child(ent);
+                placed += 1;
             }
         }
     }

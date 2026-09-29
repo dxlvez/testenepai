@@ -213,7 +213,7 @@ pub fn update_env(
         let moon = 0.22;
         dl.illuminance = (s * 9000.0 * overcast + (1.0 - s) * 350.0 * moon * 8.0) + flash * 20000.0;
         dl.color = if s > 0.05 {
-            Color::srgb(1.0, 0.9 - (1.0 - s) * 0.3, 0.8 - (1.0 - s) * 0.4)
+            Color::srgb(1.0, 0.95 - (1.0 - s) * 0.3, 0.88 - (1.0 - s) * 0.45)
         } else {
             Color::srgb(0.55, 0.6, 1.0)
         };
@@ -224,7 +224,9 @@ pub fn update_env(
         }
     }
     ambient.brightness = (320.0 + amb * 600.0 * overcast + flash * 1500.0) * (1.0 - rf * 0.6);
-    ambient.color = Color::srgb(0.5 + redness * 0.4 - env.darkness * 0.15, 0.5 - redness * 0.2 - env.darkness * 0.05, 0.75 - redness * 0.3 + env.darkness * 0.2).mix(&Color::srgb(0.9, 0.15, 0.2), rf * 0.7);
+    // neutral sky-fill by day (a strong blue fill turned sunlit streets mauve), cold at night
+    let dk = env.darkness.clamp(0.0, 1.0);
+    ambient.color = Color::srgb(0.66 + redness * 0.3 - dk * 0.26, 0.68 - redness * 0.2 - dk * 0.2, 0.72 - redness * 0.25 + dk * 0.1).mix(&Color::srgb(0.9, 0.15, 0.2), rf * 0.7);
     let sky_c = sky.to_srgba();
     clear.0 = Color::srgb(sky_c.red * overcast + flash * 0.5, sky_c.green * overcast + flash * 0.5, sky_c.blue * overcast + flash * 0.6);
     env.darkness = 1.0 - s * overcast;

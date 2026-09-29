@@ -437,6 +437,25 @@ impl MB {
         }
     }
 
+    /// A single bent grass/crop blade: dark at the root, lighter at the tip.
+    /// Normals lean up so a field of blades lights like a soft lawn from both sides.
+    pub fn blade(&mut self, root: Vec3, lean: Vec2, h: f32, w: f32, yaw: f32, root_c: [f32; 4], tip_c: [f32; 4]) {
+        let side = Vec3::new(yaw.cos(), 0.0, yaw.sin()) * (w * 0.5);
+        let mid = root + Vec3::new(lean.x * 0.35, h * 0.55, lean.y * 0.35);
+        let tip = root + Vec3::new(lean.x, h, lean.y);
+        let mid_c = [(root_c[0] + tip_c[0]) * 0.5, (root_c[1] + tip_c[1]) * 0.5, (root_c[2] + tip_c[2]) * 0.5, 1.0];
+        let base = self.pos.len() as u32;
+        let face = Vec3::new(-yaw.sin(), 0.0, yaw.cos());
+        let n: [f32; 3] = (Vec3::Y * 0.8 + face * 0.2).normalize().into();
+        for (p, c) in [(root - side, root_c), (root + side, root_c), (mid - side * 0.7, mid_c), (mid + side * 0.7, mid_c), (tip, tip_c)] {
+            self.pos.push(p.into());
+            self.nrm.push(n);
+            self.col.push(c);
+            self.uv.push([0.5, 0.5]);
+        }
+        self.idx.extend_from_slice(&[base, base + 1, base + 3, base, base + 3, base + 2, base + 2, base + 3, base + 4]);
+    }
+
     pub fn tri(&mut self, a: Vec3, b: Vec3, c: Vec3, col: [f32; 4]) {
         let n = (b - a).cross(c - a).normalize_or_zero();
         let base = self.pos.len() as u32;
