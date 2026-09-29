@@ -505,6 +505,7 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     let seed = hash2(b.x, b.y, 55);
     let low_h = 0.55;
     let mut full = MB::new();
+    let mut back = MB::new();
     let mut low = MB::new();
     let mut glass = MB::new();
     let mut furn = MB::new();
@@ -528,6 +529,9 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
             for x in b.x..b.x + b.w {
                 let (fx, fz) = (x as f32, y as f32);
                 let lo = Vec3::new(fx, 0.0, fz);
+                // walls on the far sides (min x / min z) stay up when the building is cut away
+                let is_back = (x == b.x || y == b.y) && x != b.x + b.w - 1 && y != b.y + b.h - 1;
+                let wall_mb: &mut MB = if is_back { &mut back } else { &mut full };
                 let wallish = |xx: i32, yy: i32| matches!(m.get(xx, yy), Tile::Wall | Tile::Window | Tile::Door) && m.building_at_tile(xx, yy) == Some(b.id);
                 // thin wall piece: a post in the middle plus arms towards the neighbouring wall tiles
                 let arms = |mb: &mut MB, y0: f32, y1: f32, col: [f32; 4]| {
@@ -557,26 +561,28 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 };
                 match m.get(x, y) {
                     Tile::Wall => {
-                        arms(&mut full, 0.0, GROUND_H, wc);
-                        arms(&mut low, 0.0, low_h, inner);
+                        arms(&mut *wall_mb, 0.0, GROUND_H, wc);
+                        if !is_back {
+                            arms(&mut low, 0.0, low_h, inner);
+                        }
                         // skirting board inside, cornice line outside
-                        arms(&mut full, 0.0, 0.12, trim);
+                        arms(&mut *wall_mb, 0.0, 0.12, trim);
                         if s.arch == Arch::Village && (x + y) % 2 == 0 {
                             // timber framing
                             let ez = if y == b.y { fz + WIN - 0.01 } else { fz + 1.0 - WIN + 0.01 };
                             if y == b.y || y == b.y + b.h - 1 {
-                                full.cuboid(Vec3::new(fx + 0.45, 0.3, ez - 0.02), Vec3::new(fx + 0.55, GROUND_H, ez + 0.02), beam);
+                                wall_mb.cuboid(Vec3::new(fx + 0.45, 0.3, ez - 0.02), Vec3::new(fx + 0.55, GROUND_H, ez + 0.02), beam);
                             }
                         }
                     }
                     Tile::Window => {
-                        band(&mut full, 0.0, 0.9, 0.0, 1.0, wc);
-                        band(&mut full, 2.1, GROUND_H, 0.0, 1.0, wc);
-                        band(&mut full, 0.9, 2.1, 0.0, 0.12, trim);
-                        band(&mut full, 0.9, 2.1, 0.88, 1.0, trim);
+                        band(&mut *wall_mb, 0.0, 0.9, 0.0, 1.0, wc);
+                        band(&mut *wall_mb, 2.1, GROUND_H, 0.0, 1.0, wc);
+                        band(&mut *wall_mb, 0.9, 2.1, 0.0, 0.12, trim);
+                        band(&mut *wall_mb, 0.9, 2.1, 0.88, 1.0, trim);
                         // sill and mullion
-                        band(&mut full, 0.86, 0.93, 0.06, 0.94, white_trim);
-                        band(&mut full, 1.45, 1.5, 0.12, 0.88, trim);
+                        band(&mut *wall_mb, 0.86, 0.93, 0.06, 0.94, white_trim);
+                        band(&mut *wall_mb, 1.45, 1.5, 0.12, 0.88, trim);
                         if along_x {
                             glass.cuboid(Vec3::new(fx + 0.12, 0.9, fz + 0.47), Vec3::new(fx + 0.88, 2.1, fz + 0.53), [1.0, 1.0, 1.0, 1.0]);
                         } else {
@@ -586,42 +592,44 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                         match s.arch {
                             Arch::Creole | Arch::Village | Arch::Wooden if along_x => {
                                 let sh = c3([fcol[1] * 0.5, fcol[2] * 0.7, fcol[0] * 0.5]);
-                                full.cuboid(Vec3::new(fx - 0.25, 0.9, oz), Vec3::new(fx + 0.05, 2.1, oz + 0.04), sh);
-                                full.cuboid(Vec3::new(fx + 0.95, 0.9, oz), Vec3::new(fx + 1.25, 2.1, oz + 0.04), sh);
+                                wall_mb.cuboid(Vec3::new(fx - 0.25, 0.9, oz), Vec3::new(fx + 0.05, 2.1, oz + 0.04), sh);
+                                wall_mb.cuboid(Vec3::new(fx + 0.95, 0.9, oz), Vec3::new(fx + 1.25, 2.1, oz + 0.04), sh);
                                 // shutter slats
                                 for k in 0..6 {
                                     let yy = 1.0 + k as f32 * 0.18;
-                                    full.cuboid(Vec3::new(fx - 0.24, yy, oz - 0.01), Vec3::new(fx + 0.04, yy + 0.03, oz), c3([fcol[1] * 0.4, fcol[2] * 0.55, fcol[0] * 0.4]));
-                                    full.cuboid(Vec3::new(fx + 0.96, yy, oz - 0.01), Vec3::new(fx + 1.24, yy + 0.03, oz), c3([fcol[1] * 0.4, fcol[2] * 0.55, fcol[0] * 0.4]));
+                                    wall_mb.cuboid(Vec3::new(fx - 0.24, yy, oz - 0.01), Vec3::new(fx + 0.04, yy + 0.03, oz), c3([fcol[1] * 0.4, fcol[2] * 0.55, fcol[0] * 0.4]));
+                                    wall_mb.cuboid(Vec3::new(fx + 0.96, yy, oz - 0.01), Vec3::new(fx + 1.24, yy + 0.03, oz), c3([fcol[1] * 0.4, fcol[2] * 0.55, fcol[0] * 0.4]));
                                 }
                                 if s.arch == Arch::Village {
                                     // flower box
-                                    full.cuboid(Vec3::new(fx + 0.1, 0.8, oz - 0.15), Vec3::new(fx + 0.9, 0.95, oz + 0.05), beam);
+                                    wall_mb.cuboid(Vec3::new(fx + 0.1, 0.8, oz - 0.15), Vec3::new(fx + 0.9, 0.95, oz + 0.05), beam);
                                     for k in 0..4 {
                                         let col = [[0.8, 0.1, 0.15], [0.95, 0.5, 0.6], [0.9, 0.8, 0.2], [0.8, 0.1, 0.15]][((seed as i32 + k + x) % 4) as usize];
-                                        full.sphere(Vec3::new(fx + 0.2 + k as f32 * 0.2, 1.0, oz - 0.05), Vec3::splat(0.07), 6, c3(col));
+                                        wall_mb.sphere(Vec3::new(fx + 0.2 + k as f32 * 0.2, 1.0, oz - 0.05), Vec3::splat(0.07), 6, c3(col));
                                     }
                                 }
                             }
                             Arch::Stone if along_x => {
                                 if seed % 4 == 0 {
                                     // boarded window
-                                    full.cuboid(Vec3::new(fx + 0.1, 0.95, oz - 0.02), Vec3::new(fx + 0.9, 2.05, oz + 0.02), c3([0.3, 0.24, 0.16]));
+                                    wall_mb.cuboid(Vec3::new(fx + 0.1, 0.95, oz - 0.02), Vec3::new(fx + 0.9, 2.05, oz + 0.02), c3([0.3, 0.24, 0.16]));
                                 }
                             }
                             _ => {}
                         }
-                        band(&mut low, 0.0, low_h, 0.0, 1.0, inner);
+                        if !is_back {
+                            band(&mut low, 0.0, low_h, 0.0, 1.0, inner);
+                        }
                     }
                     Tile::Door => {
-                        band(&mut full, 2.3, GROUND_H, 0.0, 1.0, wc);
-                        band(&mut full, 2.2, 2.35, -0.08, 1.08, trim);
-                        band(&mut full, 0.0, 2.3, 0.0, 0.07, trim);
-                        band(&mut full, 0.0, 2.3, 0.93, 1.0, trim);
+                        band(&mut *wall_mb, 2.3, GROUND_H, 0.0, 1.0, wc);
+                        band(&mut *wall_mb, 2.2, 2.35, -0.08, 1.08, trim);
+                        band(&mut *wall_mb, 0.0, 2.3, 0.0, 0.07, trim);
+                        band(&mut *wall_mb, 0.0, 2.3, 0.93, 1.0, trim);
                         // step
                         if along_x {
                             let sz = if y == b.y { fz + WIN - 0.3 } else { fz + 1.0 - WIN };
-                            full.cuboid(Vec3::new(fx - 0.05, 0.0, sz), Vec3::new(fx + 1.05, 0.12, sz + 0.3), c3([0.5, 0.48, 0.45]));
+                            wall_mb.cuboid(Vec3::new(fx - 0.05, 0.0, sz), Vec3::new(fx + 1.05, 0.12, sz + 0.3), c3([0.5, 0.48, 0.45]));
                         }
                     }
                     _ => {}
@@ -866,6 +874,109 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
             roof.clear_to_ruin();
         }
     }
+    // ---------------------------------------------------------------- interior finish: wallpaper, skirting, pictures, curtains
+    let mut lining = MB::new();
+    let mut lining_low = MB::new();
+    // things hung on the walls disappear together with the walls when cut away
+    let mut deco = MB::new();
+    let mut lining_back = MB::new();
+    let mut deco_back = MB::new();
+    if !is_market && !matches!(b.kind, BKind::Barn | BKind::Warehouse | BKind::Abandoned | BKind::Factory) {
+        let paper = room_paper(b, year);
+        let skirting = c3([paper[0] * 0.35, paper[1] * 0.3, paper[2] * 0.28]);
+        let pc = c3(paper);
+        for y in b.y..b.y + b.h {
+            for x in b.x..b.x + b.w {
+                if m.get(x, y) != Tile::Floor || m.building_at_tile(x, y) != Some(b.id) {
+                    continue;
+                }
+                let (fx, fz) = (x as f32, y as f32);
+                for (dx, dy) in [(1i32, 0i32), (-1, 0), (0, 1), (0, -1)] {
+                    let t = m.get(x + dx, y + dy);
+                    if !matches!(t, Tile::Wall | Tile::Window | Tile::Door) {
+                        continue;
+                    }
+                    let (nx, ny) = (x + dx, y + dy);
+                    let nb = (nx == b.x || ny == b.y) && nx != b.x + b.w - 1 && ny != b.y + b.h - 1;
+                    let (lin, dec): (&mut MB, &mut MB) = if nb { (&mut lining_back, &mut deco_back) } else { (&mut lining, &mut deco) };
+                    // the inner face of the thin wall in the neighbouring tile
+                    let (p0, p1) = match (dx, dy) {
+                        (1, 0) => (Vec3::new(fx + 1.0 + WIN - 0.02, 0.0, fz), Vec3::new(fx + 1.0 + WIN, 0.0, fz + 1.0)),
+                        (-1, 0) => (Vec3::new(fx - WIN, 0.0, fz), Vec3::new(fx - WIN + 0.02, 0.0, fz + 1.0)),
+                        (0, 1) => (Vec3::new(fx, 0.0, fz + 1.0 + WIN - 0.02), Vec3::new(fx + 1.0, 0.0, fz + 1.0 + WIN)),
+                        _ => (Vec3::new(fx, 0.0, fz - WIN), Vec3::new(fx + 1.0, 0.0, fz - WIN + 0.02)),
+                    };
+                    let slab = |mb: &mut MB, y0: f32, y1: f32, col: [f32; 4]| mb.cuboid(Vec3::new(p0.x, y0, p0.z), Vec3::new(p1.x, y1, p1.z), col);
+                    let into = Vec3::new(-dx as f32, 0.0, -dy as f32);
+                    let mid = (p0 + p1) * 0.5 + into * 0.012;
+                    match t {
+                        Tile::Wall => {
+                            slab(&mut *lin, 0.12, GROUND_H - 0.02, pc);
+                            slab(&mut lining_low, 0.12, low_h + 0.01, pc);
+                            slab(&mut furn, 0.0, 0.14, skirting);
+                            // wall decoration
+                            let r = hash2(x * 7 + dx, y * 5 + dy, 404) % 100;
+                            let side = if dx != 0 { Vec3::Z } else { Vec3::X };
+                            let deco_c = mid + into * 0.02;
+                            match r {
+                                0..=13 => picture(&mut *dec, deco_c + Vec3::Y * 1.55, side, into, hash2(x, y, 405), year),
+                                14..=17 if year >= 1900 => {
+                                    // wall clock
+                                    dec.bx(deco_c + Vec3::Y * 1.9, side * 0.16 + Vec3::Y * 0.16 + into * 0.03, c3([0.3, 0.18, 0.1]));
+                                    dec.bx(deco_c + Vec3::Y * 1.9 + into * 0.035, side * 0.12 + Vec3::Y * 0.12 + into * 0.005, c3([0.92, 0.9, 0.82]));
+                                    dec.bx(deco_c + Vec3::Y * 1.93 + into * 0.045, side * 0.008 + Vec3::Y * 0.07 + into * 0.004, c3([0.05, 0.05, 0.05]));
+                                }
+                                18..=24 => {
+                                    // small wall shelf with objects
+                                    dec.bx(deco_c + Vec3::Y * 1.45 + into * 0.1, side * 0.4 + Vec3::Y * 0.02 + into * 0.1, c3([0.35, 0.22, 0.13]));
+                                    for k in 0..4 {
+                                        let off = side * (-0.3 + k as f32 * 0.2) + into * 0.1 + Vec3::Y * 1.47;
+                                        let hh = 0.08 + (hash2(x, k, 406) % 10) as f32 * 0.015;
+                                        let col = [[0.6, 0.15, 0.12], [0.2, 0.3, 0.5], [0.85, 0.82, 0.7], [0.25, 0.4, 0.25]][(hash2(y, k, 407) % 4) as usize];
+                                        dec.bx(deco_c + off + Vec3::Y * hh, side * 0.05 + Vec3::Y * hh + into * 0.05, c3(col));
+                                    }
+                                }
+                                25..=27 => {
+                                    // sconce lamp
+                                    dec.bx(deco_c + Vec3::Y * 1.8 + into * 0.05, side * 0.04 + Vec3::Y * 0.06 + into * 0.05, c3([0.7, 0.55, 0.25]));
+                                    dec.sphere(deco_c + Vec3::Y * 1.92 + into * 0.12, Vec3::new(0.07, 0.09, 0.07), 8, c3([1.0, 0.8, 0.5]));
+                                }
+                                28..=29 => {
+                                    // mirror
+                                    dec.bx(deco_c + Vec3::Y * 1.5, side * 0.3 + Vec3::Y * 0.4 + into * 0.02, c3([0.3, 0.2, 0.1]));
+                                    glass.bx(deco_c + Vec3::Y * 1.5 + into * 0.022, side * 0.26 + Vec3::Y * 0.36 + into * 0.004, [1.0, 1.0, 1.0, 1.0]);
+                                }
+                                _ => {}
+                            }
+                        }
+                        Tile::Window => {
+                            slab(&mut *lin, 0.12, 0.9, pc);
+                            slab(&mut *lin, 2.1, GROUND_H - 0.02, pc);
+                            slab(&mut lining_low, 0.12, low_h + 0.01, pc);
+                            slab(&mut furn, 0.0, 0.14, skirting);
+                            // curtains, rod and a sill
+                            let side = if dx != 0 { Vec3::Z } else { Vec3::X };
+                            let cc = curtain_col(b, year);
+                            let base = mid + into * 0.05;
+                            for sgn in [-1.0f32, 1.0] {
+                                let c0 = base + side * sgn * 0.42;
+                                for k in 0..3 {
+                                    let off = side * sgn * (k as f32 * 0.035) + into * ((k % 2) as f32 * 0.025);
+                                    dec.bx(c0 + off + Vec3::Y * 1.45, side * 0.03 + Vec3::Y * 0.95 + into * 0.015, c3(cc));
+                                }
+                            }
+                            dec.bx(base + Vec3::Y * 2.35, side * 0.55 + Vec3::Y * 0.012 + into * 0.012, c3([0.55, 0.45, 0.25]));
+                            dec.bx(base + Vec3::Y * 2.3, side * 0.5 + Vec3::Y * 0.08 + into * 0.02, c3([cc[0] * 0.8, cc[1] * 0.8, cc[2] * 0.8]));
+                            dec.bx(mid + Vec3::Y * 0.9 + into * 0.08, side * 0.5 + Vec3::Y * 0.02 + into * 0.08, c3([0.85, 0.83, 0.78]));
+                        }
+                        _ => {
+                            slab(&mut *lin, 2.3, GROUND_H - 0.02, pc);
+                        }
+                    }
+                }
+            }
+        }
+    }
     for p in m.props.iter().filter(|p| p.building == Some(b.id)) {
         let (gs, gg) = prop_geo(p, year, s, false);
         let off = Vec3::new(p.x as f32, if is_market { 0.12 } else { 0.1 }, p.y as f32);
@@ -894,6 +1005,12 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     };
     let full_e = spawn(full, wall_mat.clone(), true, true);
     let low_e = spawn(low, mats.plaster.clone(), false, false);
+    let lining_e = spawn(lining, mats.wallpaper.clone(), true, false);
+    let deco_e = spawn(deco, mats.furn.clone(), true, true);
+    spawn(back, wall_mat.clone(), true, true);
+    spawn(lining_back, mats.wallpaper.clone(), true, false);
+    spawn(deco_back, mats.furn.clone(), true, true);
+    let lining_low_e = spawn(lining_low, mats.wallpaper.clone(), true, false);
     let _ = &wall_mat;
     let slate_city = matches!(s.arch, Arch::Terrace | Arch::Stone | Arch::Wooden | Arch::Victorian);
     let roof_e = spawn(roof, if !gabled_roof { mats.roof_flat.clone() } else if slate_city { mats.slate.clone() } else { mats.roof.clone() }, true, true);
@@ -901,7 +1018,8 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
     spawn(furn, mats.furn.clone(), true, true);
     let glow_e = spawn(glow, mats.glow.clone(), true, false);
     // signs and window glass disappear together with the walls when cut away
-    c.entity(full_e).add_children(&[glass_e, glow_e]);
+    c.entity(full_e).add_children(&[glass_e, glow_e, lining_e, deco_e]);
+    c.entity(low_e).add_child(lining_low_e);
     if !is_market {
         for &(dx, dy) in &b.doors {
             let axis_x = dy == b.y || dy == b.y + b.h - 1;
@@ -953,6 +1071,56 @@ fn prop_geo(p: &Prop, year: i32, s: &Style, snow: bool) -> (MB, MB) {
     shift(&geo.solid, &mut solid);
     shift(&geo.glow, &mut glow);
     (solid, glow)
+}
+
+/// Wallpaper / paint colour of a building's rooms, by era.
+fn room_paper(b: &Building, year: i32) -> [f32; 3] {
+    let pal: &[[f32; 3]] = if year < 1935 {
+        &[[0.55, 0.62, 0.5], [0.62, 0.35, 0.33], [0.8, 0.72, 0.55], [0.45, 0.5, 0.58], [0.72, 0.62, 0.5]]
+    } else if year < 1960 {
+        &[[0.82, 0.78, 0.62], [0.68, 0.78, 0.72], [0.85, 0.7, 0.68], [0.75, 0.75, 0.8], [0.88, 0.85, 0.75]]
+    } else if year < 1980 {
+        &[[0.8, 0.6, 0.35], [0.6, 0.55, 0.3], [0.85, 0.78, 0.55], [0.55, 0.4, 0.3], [0.7, 0.62, 0.45]]
+    } else {
+        &[[0.9, 0.88, 0.84], [0.85, 0.82, 0.75], [0.78, 0.82, 0.85], [0.88, 0.8, 0.78], [0.8, 0.85, 0.8]]
+    };
+    let mut c = pal[(hash2(b.x, b.y, 410) as usize) % pal.len()];
+    if matches!(b.kind, BKind::Police | BKind::Hospital | BKind::Office | BKind::Station | BKind::Newspaper) {
+        c = [0.78, 0.8, 0.76];
+    }
+    if matches!(b.kind, BKind::Bar | BKind::Club | BKind::Cabaret) {
+        c = [c[0] * 0.6, c[1] * 0.45, c[2] * 0.4];
+    }
+    c
+}
+
+fn curtain_col(b: &Building, year: i32) -> [f32; 3] {
+    let pal: &[[f32; 3]] = if year < 1950 { &[[0.55, 0.12, 0.12], [0.3, 0.4, 0.3], [0.85, 0.82, 0.75], [0.6, 0.5, 0.3]] } else { &[[0.9, 0.85, 0.7], [0.75, 0.45, 0.2], [0.4, 0.5, 0.6], [0.95, 0.95, 0.92]] };
+    pal[(hash2(b.x, b.y, 411) as usize) % pal.len()]
+}
+
+/// A framed painting or photograph (landscape, portrait or poster by era).
+fn picture(mb: &mut MB, c: Vec3, side: Vec3, into: Vec3, seed: u32, year: i32) {
+    let (w, h) = if seed % 3 == 0 { (0.28, 0.36) } else { (0.42, 0.3) };
+    let frame = [[0.45, 0.3, 0.12], [0.1, 0.07, 0.05], [0.75, 0.6, 0.25], [0.2, 0.2, 0.2]][(seed % 4) as usize];
+    mb.bx(c, side * (w + 0.04) + Vec3::Y * (h + 0.04) + into * 0.015, c3(frame));
+    // canvas: sky and ground bands (landscape) or a dark portrait
+    let photo = year > 1945 && seed % 2 == 0;
+    let (top, bot) = match seed % 5 {
+        0 => ([0.55, 0.65, 0.75], [0.3, 0.4, 0.2]),
+        1 => ([0.7, 0.55, 0.35], [0.35, 0.25, 0.15]),
+        2 => ([0.2, 0.25, 0.35], [0.12, 0.12, 0.15]),
+        3 => ([0.8, 0.75, 0.6], [0.5, 0.35, 0.3]),
+        _ => ([0.4, 0.5, 0.6], [0.6, 0.55, 0.4]),
+    };
+    let (top, bot) = if photo { ([0.75, 0.73, 0.7], [0.3, 0.29, 0.28]) } else { (top, bot) };
+    mb.bx(c + into * 0.017 + Vec3::Y * h * 0.4, side * w + Vec3::Y * h * 0.6 + into * 0.003, c3(top));
+    mb.bx(c + into * 0.017 - Vec3::Y * h * 0.55, side * w + Vec3::Y * h * 0.45 + into * 0.003, c3(bot));
+    if seed % 5 == 2 {
+        // portrait: a figure in the middle
+        mb.sphere(c + into * 0.022 + Vec3::Y * 0.05, Vec3::new(0.07, 0.09, 0.01), 8, c3([0.75, 0.6, 0.5]));
+        mb.bx(c + into * 0.022 - Vec3::Y * 0.15, side * 0.12 + Vec3::Y * 0.1 + into * 0.005, c3([0.1, 0.1, 0.12]));
+    }
 }
 
 trait RuinRoof {
