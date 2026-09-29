@@ -153,6 +153,7 @@ fn main() {
                 ui::load_fonts,
                 camera::spawn_camera,
                 render::models::load_models,
+                render::lib3d::load_lib,
                 render::post::setup_post,
                 env::setup_env,
                 audio::setup_audio,
@@ -267,6 +268,7 @@ fn main() {
                 .after(crime::fade_fx),
         );
     embed_models(&mut app);
+    render::lib3d::register_embedded(&mut app);
     app.run();
 }
 

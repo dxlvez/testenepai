@@ -6,3 +6,4 @@ pub mod textures;
 pub mod post;
 pub mod models;
 pub mod horse;
+pub mod lib3d;

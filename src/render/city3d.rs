@@ -267,7 +267,7 @@ fn wall_kind(b: &Building, s: &Style) -> WallKind {
     }
 }
 
-pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &Map, year: i32, vis: &mut CityVis) {
+pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &Map, year: i32, vis: &mut CityVis, lib: Option<&super::lib3d::Lib>) {
     let root = c.spawn((CityRoot, Transform::default(), Visibility::default(), Name::new("city"))).id();
     vis.buildings.clear();
     vis.lamps.clear();
@@ -404,8 +404,12 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
                 }
             }
             for p in m.props.iter().filter(|p| p.building.is_none() && p.x >= cx && p.x < cx + CH && p.y >= cy && p.y < cy + CH) {
+                let base_y = if matches!(m.get(p.x, p.y), Tile::Sidewalk | Tile::Plaza) { 0.12 } else { 0.02 };
+                if p.kind != PKind::LampPost && real_model(c, lib, p, year, base_y, root, None).is_some() {
+                    continue;
+                }
                 let (gs, gg) = prop_geo(p, year, &s, s.snow);
-                let off = Vec3::new(p.x as f32, if matches!(m.get(p.x, p.y), Tile::Sidewalk | Tile::Plaza) { 0.12 } else { 0.02 }, p.y as f32);
+                let off = Vec3::new(p.x as f32, base_y, p.y as f32);
                 street.append(&gs, off);
                 glow.append(&gg, off);
                 if p.kind == PKind::LampPost {
@@ -484,13 +488,13 @@ pub fn spawn_city(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         c.entity(root).add_child(e);
     }
     for b in &m.buildings {
-        let bv = spawn_building(c, meshes, mats, m, b, year, root, &s);
+        let bv = spawn_building(c, meshes, mats, m, b, year, root, &s, lib);
         vis.buildings.push(bv);
     }
 }
 
 #[allow(clippy::too_many_arguments)]
-fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &Map, b: &Building, year: i32, root: Entity, s: &Style) -> BVis {
+fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &Map, b: &Building, year: i32, root: Entity, s: &Style, lib: Option<&super::lib3d::Lib>) -> BVis {
     let hgt = wall_height(b, s);
     let nfl = floors(b, s);
     let wall_kind = wall_kind(b, s);
@@ -978,8 +982,14 @@ fn spawn_building(c: &mut Commands, meshes: &mut Assets<Mesh>, mats: &Mats, m: &
         }
     }
     for p in m.props.iter().filter(|p| p.building == Some(b.id)) {
+        let floor_y = if is_market { 0.12 } else { 0.1 };
+        let style = building_style(b, m, year);
+        if let Some(e) = real_model(c, lib, p, year, floor_y, root, style) {
+            let _ = e;
+            continue;
+        }
         let (gs, gg) = prop_geo(p, year, s, false);
-        let off = Vec3::new(p.x as f32, if is_market { 0.12 } else { 0.1 }, p.y as f32);
+        let off = Vec3::new(p.x as f32, floor_y, p.y as f32);
         furn.append(&gs, off);
         glow.append(&gg, off);
     }
@@ -1121,6 +1131,78 @@ fn picture(mb: &mut MB, c: Vec3, side: Vec3, into: Vec3, seed: u32, year: i32) {
         mb.sphere(c + into * 0.022 + Vec3::Y * 0.05, Vec3::new(0.07, 0.09, 0.01), 8, c3([0.75, 0.6, 0.5]));
         mb.bx(c + into * 0.022 - Vec3::Y * 0.15, side * 0.12 + Vec3::Y * 0.1 + into * 0.005, c3([0.1, 0.1, 0.12]));
     }
+}
+
+
+/// Model category for a prop kind, and whether it keeps its natural size (trees, hydrants...).
+fn model_category(k: PKind) -> Option<(&'static str, bool)> {
+    use PKind::*;
+    Some(match k {
+        Bed => ("bed", false),
+        Nightstand => ("nightstand", false),
+        Wardrobe => ("wardrobe", false),
+        Shelf => ("shelf", false),
+        Chair => ("chair", false),
+        Stool => ("stool", false),
+        Armchair => ("armchair", false),
+        Sofa => ("sofa", false),
+        Table => ("table", false),
+        Desk => ("desk", false),
+        FloorLamp => ("lamp_floor", true),
+        Plant => ("plant", true),
+        Tv => ("tv", false),
+        RadioSet => ("radio", true),
+        Barrel => ("barrel", true),
+        Crate => ("crate", true),
+        Dumpster => ("trash_can", true),
+        Hydrant => ("hydrant", true),
+        Tree => ("tree", true),
+        Bench => ("bench", false),
+        _ => return None,
+    })
+}
+
+/// Rich / period / regional style tag for picking furniture models.
+fn building_style(b: &Building, m: &Map, year: i32) -> Option<&'static str> {
+    let wealth = m.districts.get(b.district).map(|d| d.wealth).unwrap_or(0.5);
+    if m.districts.get(b.district).map(|d| d.name.contains("Chinatown")).unwrap_or(false) {
+        return Some("chinese");
+    }
+    if matches!(b.kind, BKind::Bar | BKind::Club | BKind::Cabaret | BKind::Restaurant) {
+        return Some("bar");
+    }
+    if matches!(b.kind, BKind::Police | BKind::Office | BKind::Newspaper | BKind::Bank) {
+        return Some("office");
+    }
+    if matches!(b.kind, BKind::Mansion) || wealth > 0.72 {
+        return Some(if year < 1945 { "gothic" } else { "rich" });
+    }
+    if wealth < 0.35 {
+        return Some("rustic");
+    }
+    None
+}
+
+/// Spawn the real photographed model for a prop if the library has one for this era.
+fn real_model(c: &mut Commands, lib: Option<&super::lib3d::Lib>, p: &Prop, year: i32, base_y: f32, root: Entity, style: Option<&str>) -> Option<Entity> {
+    let lib = lib?;
+    let (cat, natural) = model_category(p.kind)?;
+    let seed = hash2(p.x, p.y, 777);
+    let (e, h) = lib.pick(cat, year, seed, style)?;
+    let centre = Vec3::new(p.x as f32 + p.w as f32 / 2.0, base_y, p.y as f32 + p.h as f32 / 2.0);
+    let rot = if p.kind.back_neg_z() { (p.rot + 2) % 4 } else { p.rot };
+    // chairs/beds were authored with the back on -z in the procedural set; the models all have it on +z
+    let rot = if p.kind.back_neg_z() { (rot + 2) % 4 } else { rot };
+    let tr = if natural {
+        let ang = (seed % 4) as f32 * std::f32::consts::FRAC_PI_2;
+        let k = if p.kind == PKind::Tree { 0.8 + (seed % 7) as f32 * 0.08 } else { 1.0 };
+        Transform::from_translation(centre).with_rotation(Quat::from_rotation_y(ang)).with_scale(Vec3::splat(k))
+    } else {
+        super::lib3d::fit(e, centre, p.w as f32 * 0.96, p.h as f32 * 0.96, rot, 1.15)
+    };
+    let ent = c.spawn((SceneRoot(h.clone()), tr)).id();
+    c.entity(root).add_child(ent);
+    Some(ent)
 }
 
 trait RuinRoof {

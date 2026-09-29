@@ -105,7 +105,7 @@ pub fn load_city_system(
     db: Res<crate::cases::run::CaseDb>,
     roots: Query<Entity, With<CityRoot>>,
     agents: Query<Entity, With<AgentRoot>>,
-    (mut rt, mut it, mut cars, mut crime_rt): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>, ResMut<crate::crime::CrimeRt>),
+    (mut rt, mut it, mut cars, mut crime_rt, lib): (ResMut<crate::player::PlayerRt>, ResMut<crate::interact::Interact>, ResMut<crate::vehicles::Cars>, ResMut<crate::crime::CrimeRt>, Option<Res<crate::render::lib3d::Lib>>),
 ) {
     if !req.0 {
         return;
@@ -161,7 +161,7 @@ pub fn load_city_system(
         sim.rebuild_index();
         sim.pather = Some(Pather::new(&m));
     }
-    spawn_city(&mut c, &mut meshes, &mats, &m, game.year, &mut vis);
+    spawn_city(&mut c, &mut meshes, &mats, &m, game.year, &mut vis, lib.as_deref());
     // agent visuals
     for (i, a) in sim.agents.iter().enumerate() {
         let look = game.pop.get(a.pid).look.clone();
