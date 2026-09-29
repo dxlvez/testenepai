@@ -448,8 +448,24 @@ pub struct Pbr {
 fn decode(bytes: &[u8], srgb: bool, normal: bool) -> Image {
     use bevy::image::{CompressedImageFormats, ImageType};
     let im = Image::from_buffer(bytes, ImageType::Extension("jpg"), CompressedImageFormats::NONE, srgb, ImageSampler::Default, RenderAssetUsages::RENDER_WORLD).expect("textura embutida");
-    let size = im.texture_descriptor.size.width;
-    let data = im.data.clone().unwrap_or_default();
+    let mut size = im.texture_descriptor.size.width;
+    let mut data = im.data.clone().unwrap_or_default();
+    // 1k is plenty from the gameplay camera and keeps video memory low on family PCs
+    while size > 1024 {
+        let h = size / 2;
+        let mut out = vec![0u8; (h * h * 4) as usize];
+        for y in 0..h {
+            for x in 0..h {
+                for ch in 0..4 {
+                    let at = |xx: u32, yy: u32| data[((yy * size + xx) * 4 + ch) as usize] as u32;
+                    let s = at(x * 2, y * 2) + at(x * 2 + 1, y * 2) + at(x * 2, y * 2 + 1) + at(x * 2 + 1, y * 2 + 1);
+                    out[((y * h + x) * 4 + ch) as usize] = (s / 4) as u8;
+                }
+            }
+        }
+        data = out;
+        size = h;
+    }
     with_mips(size, data, if srgb { TextureFormat::Rgba8UnormSrgb } else { TextureFormat::Rgba8Unorm }, normal)
 }
 
