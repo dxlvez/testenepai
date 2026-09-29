@@ -70,6 +70,9 @@ pub struct CrimeRt {
     pub last_crime: Option<u32>,
     pub cleaning: Option<(Entity, f32)>,
     pub arrest_pending: bool,
+    /// (building, seconds seen inside by a resident, already reported)
+    pub trespass: Option<(usize, f32, bool)>,
+    pub greeted: Option<usize>,
 }
 
 // ------------------------------------------------------------------ combat
@@ -912,4 +915,120 @@ pub fn player_death(game: Res<Game>, mut crt: ResMut<CrimeRt>, mut popups: ResMu
     if game.player.health > 0.0 {
         *done = false;
     }
+}
+
+// ------------------------------------------------------------------ trespassing
+
+/// Residents who find Elias inside their home (or a closed shop) react: they
+/// demand he leaves, then scream, flee to the police or attack.
+#[allow(clippy::too_many_arguments)]
+pub fn trespass_system(
+    time: Res<Time>,
+    game: Res<Game>,
+    map: Option<Res<CityMap>>,
+    mut sim: ResMut<Sim>,
+    rt: Res<PlayerRt>,
+    mut crt: ResMut<CrimeRt>,
+    mut crimes: EventWriter<CrimeEv>,
+    db: Res<crate::cases::run::CaseDb>,
+) {
+    let Some(map) = map else { return };
+    let m = &map.0;
+    if game.phase != Phase::City || rt.in_car {
+        crt.trespass = None;
+        return;
+    }
+    let pp = game.player.pos;
+    let Some(b) = m.building_at(pp) else {
+        crt.trespass = None;
+        crt.greeted = None;
+        return;
+    };
+    let bl = &m.buildings[b];
+    let crime_b = crate::cases::run::current(&game, &db).and_then(|(_, pi)| game.cases[pi].clue_pos.first().copied().flatten()).and_then(|(x, y)| m.building_at(Vec2::new(x, y)));
+    let allowed = game.player.owned.contains(&b) || game.player.safehouse == Some(b) || Some(b) == crime_b || (bl.kind.public() && bl.kind.is_open(game.hour()));
+    if allowed {
+        crt.trespass = None;
+        return;
+    }
+    if crt.trespass.map(|t| t.0) != Some(b) {
+        crt.trespass = Some((b, 0.0, false));
+    }
+    let now = game.abs_minute();
+    let dt = time.delta_secs();
+    let hidden = rt.hidden_in.is_some();
+    let mut spotted = false;
+    let mut friendly_home = false;
+    for a in sim.agents.iter_mut() {
+        if !a.active() || m.building_at(a.pos) != Some(b) {
+            continue;
+        }
+        let asleep = a.act == NAct::Sleep && a.arrived;
+        let d = a.pos.distance(pp);
+        let sees = !hidden && !asleep && d < 7.0 && m.line_clear(a.pos, pp, true);
+        let hears = asleep && d < rt.noise * 0.6;
+        if !sees && !hears {
+            continue;
+        }
+        let p = game.pop.get(a.pid);
+        let friend = p.elias.trust > 55 || matches!(p.elias.romance, Romance::Dating | Romance::Lovers | Romance::Engaged | Romance::Married);
+        if friend {
+            if crt.greeted != Some(b) {
+                crt.greeted = Some(b);
+                friend_home_say(a, p.elias.met);
+            }
+            friendly_home = true;
+            continue;
+        }
+        if !matches!(a.state, AState::Normal | AState::Investigate { .. }) {
+            continue;
+        }
+        spotted = true;
+        if hears {
+            a.state = AState::Investigate { at: pp, until: now + 8.0 };
+            a.arrived = false;
+            a.path.clear();
+            if a.bubble.is_none() {
+                a.say(pick(a.pid, &["Hã? Quem está aí?", "Tem alguém aí embaixo?", "Querido, você ouviu isso?", "Quem anda pela casa a essa hora?"]), 2.5);
+            }
+            continue;
+        }
+        if a.bubble.is_none() {
+            let t = crt.trespass.map(|t| t.1).unwrap_or(0.0);
+            let lines: &[&str] = if t < 2.5 {
+                if p.elias.met {
+                    &["Você de novo? Quem deixou você entrar?", "O que está fazendo aqui dentro? Saia!", "Eu não convidei você. Fora!"]
+                } else {
+                    &["Quem é você?! O que faz na minha casa?", "Ei! Saia daqui agora!", "Como você entrou aqui?!", "Fora da minha casa, seu ladrão!", "Não se aproxime! Eu vou gritar!"]
+                }
+            } else {
+                &["Eu vou chamar a polícia!", "SOCORRO! Tem um homem aqui dentro!", "Última vez: SAIA!"]
+            };
+            a.say(pick(a.pid.wrapping_add(t as u32), lines), 2.5);
+        }
+        // face him
+        a.state = AState::Investigate { at: pp, until: now + 4.0 };
+    }
+    if friendly_home && !spotted {
+        return;
+    }
+    if let Some(t) = crt.trespass.as_mut() {
+        if spotted {
+            t.1 += dt;
+        }
+        if t.1 > 5.0 && !t.2 {
+            t.2 = true;
+            crimes.write(CrimeEv { kind: CrimeKind::BreakIn, pos: pp, victim: None, noise: 6.0, weapon: None });
+        }
+    }
+}
+
+fn friend_home_say(a: &mut crate::sim::agents::Agent, met: bool) {
+    if a.bubble.is_none() && met {
+        a.say(pick(a.pid, &["Elias? Entra, fica à vontade.", "Não esperava você hoje. Quer um café?", "Você podia ter batido, sabia?"]), 2.5);
+    }
+}
+
+fn pick(seed: u32, lines: &[&'static str]) -> &'static str {
+    lines[(seed as usize).wrapping_mul(2654435761) % lines.len()]
 }
