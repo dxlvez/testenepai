@@ -13,7 +13,7 @@
   "max_year": 1980,
   "style": "poor",
   "triangles": 49990,
-  "bytes": 2129804,
+  "bytes": 1977648,
   "source": "old_bed_frame"
  },
  {
@@ -30,7 +30,7 @@
   "max_year": 1970,
   "style": "home",
   "triangles": 2715,
-  "bytes": 923904,
+  "bytes": 803756,
   "source": "vintage_day_bed"
  },
  {
@@ -47,7 +47,7 @@
   "max_year": 2001,
   "style": "gothic rich",
   "triangles": 18745,
-  "bytes": 1148092,
+  "bytes": 1030576,
   "source": "GothicBed_01"
  },
  {
@@ -64,7 +64,7 @@
   "max_year": 2001,
   "style": "rich home",
   "triangles": 2002,
-  "bytes": 429780,
+  "bytes": 352180,
   "source": "ClassicNightstand_01"
  },
  {
@@ -81,7 +81,7 @@
   "max_year": 2001,
   "style": "rustic home",
   "triangles": 470,
-  "bytes": 687500,
+  "bytes": 550312,
   "source": "painted_wooden_nightstand"
  },
  {
@@ -98,7 +98,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 59999,
-  "bytes": 2715320,
+  "bytes": 2411764,
   "source": "vintage_cabinet_01"
  },
  {
@@ -115,7 +115,7 @@
   "max_year": 2001,
   "style": "gothic rich",
   "triangles": 12170,
-  "bytes": 1004836,
+  "bytes": 864680,
   "source": "GothicCabinet_01"
  },
  {
@@ -132,7 +132,7 @@
   "max_year": 2001,
   "style": "rustic home",
   "triangles": 2227,
-  "bytes": 623520,
+  "bytes": 519564,
   "source": "painted_wooden_cabinet"
  },
  {
@@ -149,7 +149,7 @@
   "max_year": 2001,
   "style": "rustic home",
   "triangles": 966,
-  "bytes": 493984,
+  "bytes": 420228,
   "source": "painted_wooden_cabinet_02"
  },
  {
@@ -166,24 +166,24 @@
   "max_year": 2001,
   "style": "chinese",
   "triangles": 15668,
-  "bytes": 1088252,
+  "bytes": 964824,
   "source": "chinese_cabinet"
  },
  {
   "id": "chinese_commode",
   "file": "chinese_commode.glb",
-  "category": "nightstand",
+  "category": "table",
   "size": [
-   4.49,
-   2.02,
-   1.17
+   2.021,
+   0.909,
+   0.526
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "chinese",
   "triangles": 6775,
-  "bytes": 770272,
+  "bytes": 655324,
   "source": "chinese_commode"
  },
  {
@@ -200,7 +200,7 @@
   "max_year": 2001,
   "style": "poor home",
   "triangles": 10106,
-  "bytes": 1212916,
+  "bytes": 1080724,
   "source": "wooden_bookshelf_worn"
  },
  {
@@ -217,7 +217,7 @@
   "max_year": 2001,
   "style": "gothic rich",
   "triangles": 3897,
-  "bytes": 585712,
+  "bytes": 471528,
   "source": "GothicCommode_01"
  },
  {
@@ -234,7 +234,7 @@
   "max_year": 2001,
   "style": "office",
   "triangles": 26406,
-  "bytes": 1168032,
+  "bytes": 1089632,
   "source": "drawer_cabinet"
  },
  {
@@ -251,7 +251,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 5184,
-  "bytes": 735644,
+  "bytes": 603820,
   "source": "vintage_wooden_drawer_01"
  },
  {
@@ -268,7 +268,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 182,
-  "bytes": 593672,
+  "bytes": 446080,
   "source": "Shelf_01"
  },
  {
@@ -285,7 +285,7 @@
   "max_year": 2001,
   "style": "rustic home",
   "triangles": 524,
-  "bytes": 697224,
+  "bytes": 572156,
   "source": "painted_wooden_shelves"
  },
  {
@@ -302,7 +302,7 @@
   "max_year": 2001,
   "style": "shop",
   "triangles": 3174,
-  "bytes": 459268,
+  "bytes": 346592,
   "source": "wooden_display_shelves_01"
  },
  {
@@ -319,7 +319,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 4348,
-  "bytes": 545940,
+  "bytes": 421132,
   "source": "steel_frame_shelves_01"
  },
  {
@@ -336,7 +336,7 @@
   "max_year": 2001,
   "style": "rich home",
   "triangles": 7566,
-  "bytes": 729988,
+  "bytes": 622560,
   "source": "ClassicConsole_01"
  },
  {
@@ -344,16 +344,16 @@
   "file": "WoodenChair_01.glb",
   "category": "chair",
   "size": [
-   0.688,
-   2.274,
-   0.658
+   0.447,
+   1.478,
+   0.428
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
-  "style": "home",
+  "style": "gothic rich",
   "triangles": 19992,
-  "bytes": 1066176,
+  "bytes": 955852,
   "source": "WoodenChair_01"
  },
  {
@@ -370,7 +370,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 22013,
-  "bytes": 906852,
+  "bytes": 801820,
   "source": "dining_chair_02"
  },
  {
@@ -387,7 +387,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 724,
-  "bytes": 483572,
+  "bytes": 390144,
   "source": "painted_wooden_chair_01"
  },
  {
@@ -404,7 +404,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 1246,
-  "bytes": 851188,
+  "bytes": 727676,
   "source": "painted_wooden_chair_02"
  },
  {
@@ -421,7 +421,7 @@
   "max_year": 2001,
   "style": "bar",
   "triangles": 14373,
-  "bytes": 1601332,
+  "bytes": 1455200,
   "source": "bar_chair_round_01"
  },
  {
@@ -438,7 +438,7 @@
   "max_year": 2001,
   "style": "rich home",
   "triangles": 5626,
-  "bytes": 754804,
+  "bytes": 664448,
   "source": "ArmChair_01"
  },
  {
@@ -455,7 +455,7 @@
   "max_year": 2001,
   "style": "rustic home",
   "triangles": 11866,
-  "bytes": 808068,
+  "bytes": 722912,
   "source": "Rockingchair_01"
  },
  {
@@ -472,7 +472,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 4213,
-  "bytes": 598436,
+  "bytes": 506588,
   "source": "GreenChair_01"
  },
  {
@@ -489,7 +489,7 @@
   "max_year": 1985,
   "style": "rich home",
   "triangles": 6148,
-  "bytes": 766840,
+  "bytes": 661980,
   "source": "mid_century_lounge_chair"
  },
  {
@@ -506,7 +506,7 @@
   "max_year": 2001,
   "style": "shop",
   "triangles": 4280,
-  "bytes": 863888,
+  "bytes": 723112,
   "source": "BarberShopChair_01"
  },
  {
@@ -523,7 +523,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 4101,
-  "bytes": 502588,
+  "bytes": 427608,
   "source": "Sofa_01"
  },
  {
@@ -540,7 +540,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 2728,
-  "bytes": 415336,
+  "bytes": 337352,
   "source": "sofa_02"
  },
  {
@@ -557,7 +557,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 8003,
-  "bytes": 811612,
+  "bytes": 690644,
   "source": "sofa_03"
  },
  {
@@ -574,7 +574,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 5826,
-  "bytes": 817868,
+  "bytes": 693000,
   "source": "painted_wooden_sofa"
  },
  {
@@ -591,7 +591,7 @@
   "max_year": 2001,
   "style": "chinese",
   "triangles": 704,
-  "bytes": 528396,
+  "bytes": 436824,
   "source": "chinese_sofa"
  },
  {
@@ -608,7 +608,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 10946,
-  "bytes": 500708,
+  "bytes": 462196,
   "source": "wooden_stool_01"
  },
  {
@@ -625,7 +625,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 11146,
-  "bytes": 490548,
+  "bytes": 454080,
   "source": "wooden_stool_02"
  },
  {
@@ -642,7 +642,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 6324,
-  "bytes": 393928,
+  "bytes": 355640,
   "source": "folding_wooden_stool"
  },
  {
@@ -659,7 +659,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 8334,
-  "bytes": 872044,
+  "bytes": 731772,
   "source": "metal_stool_01"
  },
  {
@@ -667,16 +667,16 @@
   "file": "chinese_armchair.glb",
   "category": "armchair",
   "size": [
-   0.848,
-   1.587,
-   0.789
+   0.679,
+   1.27,
+   0.631
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "chinese",
   "triangles": 2675,
-  "bytes": 618384,
+  "bytes": 512192,
   "source": "chinese_armchair"
  },
  {
@@ -693,7 +693,7 @@
   "max_year": 2001,
   "style": "chinese",
   "triangles": 1090,
-  "bytes": 552692,
+  "bytes": 462996,
   "source": "chinese_stool"
  },
  {
@@ -710,7 +710,7 @@
   "max_year": 2001,
   "style": "office school",
   "triangles": 5072,
-  "bytes": 473176,
+  "bytes": 407528,
   "source": "SchoolChair_01"
  },
  {
@@ -727,13 +727,13 @@
   "max_year": 2001,
   "style": "home rich",
   "triangles": 4240,
-  "bytes": 636848,
+  "bytes": 529048,
   "source": "Ottoman_01"
  },
  {
   "id": "WoodenTable_01",
   "file": "WoodenTable_01.glb",
-  "category": "table",
+  "category": "desk",
   "size": [
    1.8,
    0.549,
@@ -742,9 +742,9 @@
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
-  "style": "rustic",
+  "style": "rustic office school",
   "triangles": 952,
-  "bytes": 544880,
+  "bytes": 406708,
   "source": "WoodenTable_01"
  },
  {
@@ -761,13 +761,13 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 1514,
-  "bytes": 228944,
+  "bytes": 195836,
   "source": "WoodenTable_02"
  },
  {
   "id": "WoodenTable_03",
   "file": "WoodenTable_03.glb",
-  "category": "table",
+  "category": "desk",
   "size": [
    1.327,
    0.83,
@@ -776,9 +776,9 @@
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
-  "style": "rustic",
+  "style": "rustic office",
   "triangles": 2298,
-  "bytes": 614896,
+  "bytes": 457404,
   "source": "WoodenTable_03"
  },
  {
@@ -795,7 +795,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 1048,
-  "bytes": 775860,
+  "bytes": 649504,
   "source": "dining_table"
  },
  {
@@ -812,7 +812,7 @@
   "max_year": 2001,
   "style": "bar home",
   "triangles": 8640,
-  "bytes": 537616,
+  "bytes": 453528,
   "source": "round_wooden_table_01"
  },
  {
@@ -829,7 +829,7 @@
   "max_year": 2001,
   "style": "bar home",
   "triangles": 4254,
-  "bytes": 721196,
+  "bytes": 589128,
   "source": "round_wooden_table_02"
  },
  {
@@ -846,7 +846,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 10404,
-  "bytes": 834976,
+  "bytes": 706464,
   "source": "CoffeeTable_01"
  },
  {
@@ -863,7 +863,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 2756,
-  "bytes": 249388,
+  "bytes": 225932,
   "source": "side_table_01"
  },
  {
@@ -880,7 +880,7 @@
   "max_year": 2001,
   "style": "office",
   "triangles": 6898,
-  "bytes": 636148,
+  "bytes": 512412,
   "source": "metal_office_desk"
  },
  {
@@ -897,7 +897,7 @@
   "max_year": 2001,
   "style": "office school",
   "triangles": 4162,
-  "bytes": 412428,
+  "bytes": 325968,
   "source": "SchoolDesk_01"
  },
  {
@@ -914,7 +914,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 5528,
-  "bytes": 764332,
+  "bytes": 655528,
   "source": "gallinera_table"
  },
  {
@@ -931,7 +931,7 @@
   "max_year": 2001,
   "style": "chinese",
   "triangles": 2508,
-  "bytes": 521556,
+  "bytes": 449692,
   "source": "chinese_tea_table"
  },
  {
@@ -948,7 +948,7 @@
   "max_year": 2001,
   "style": "street nature",
   "triangles": 10210,
-  "bytes": 1360828,
+  "bytes": 1112504,
   "source": "wooden_picnic_table"
  },
  {
@@ -965,7 +965,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 600,
-  "bytes": 505364,
+  "bytes": 406860,
   "source": "painted_wooden_table"
  },
  {
@@ -982,7 +982,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 26860,
-  "bytes": 1347964,
+  "bytes": 1252972,
   "source": "Chandelier_01"
  },
  {
@@ -999,7 +999,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 21514,
-  "bytes": 1172872,
+  "bytes": 1051644,
   "source": "Chandelier_02"
  },
  {
@@ -1016,7 +1016,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 29301,
-  "bytes": 1354912,
+  "bytes": 1214496,
   "source": "Chandelier_03"
  },
  {
@@ -1033,7 +1033,7 @@
   "max_year": 2001,
   "style": "chinese",
   "triangles": 7828,
-  "bytes": 1014904,
+  "bytes": 903580,
   "source": "chinese_chandelier"
  },
  {
@@ -1050,7 +1050,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 5971,
-  "bytes": 1432132,
+  "bytes": 1222292,
   "source": "lantern_chandelier_01"
  },
  {
@@ -1067,7 +1067,7 @@
   "max_year": 1945,
   "style": "poor rustic",
   "triangles": 7208,
-  "bytes": 811412,
+  "bytes": 645680,
   "source": "vintage_oil_lamp"
  },
  {
@@ -1084,7 +1084,7 @@
   "max_year": 1960,
   "style": "rustic",
   "triangles": 33902,
-  "bytes": 1089848,
+  "bytes": 1046120,
   "source": "Lantern_01"
  },
  {
@@ -1101,7 +1101,7 @@
   "max_year": 1945,
   "style": "rustic",
   "triangles": 8321,
-  "bytes": 552680,
+  "bytes": 485616,
   "source": "wooden_lantern_01"
  },
  {
@@ -1118,7 +1118,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 30610,
-  "bytes": 1254764,
+  "bytes": 1138756,
   "source": "street_lamp_01"
  },
  {
@@ -1135,7 +1135,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 20338,
-  "bytes": 1027252,
+  "bytes": 907424,
   "source": "street_lamp_02"
  },
  {
@@ -1152,7 +1152,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 9826,
-  "bytes": 406596,
+  "bytes": 375048,
   "source": "industrial_wall_sconce"
  },
  {
@@ -1169,7 +1169,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 4446,
-  "bytes": 461596,
+  "bytes": 390100,
   "source": "industrial_wall_lamp"
  },
  {
@@ -1186,7 +1186,7 @@
   "max_year": 2001,
   "style": "office",
   "triangles": 24102,
-  "bytes": 1511728,
+  "bytes": 1375512,
   "source": "desk_lamp_arm_01"
  },
  {
@@ -1203,7 +1203,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 22893,
-  "bytes": 1507144,
+  "bytes": 1321184,
   "source": "caged_hanging_light"
  },
  {
@@ -1220,7 +1220,7 @@
   "max_year": 2001,
   "style": "industrial bar",
   "triangles": 9530,
-  "bytes": 1291460,
+  "bytes": 1141052,
   "source": "hanging_industrial_lamp"
  },
  {
@@ -1237,7 +1237,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 16356,
-  "bytes": 943888,
+  "bytes": 846884,
   "source": "ceiling_fan"
  },
  {
@@ -1254,7 +1254,7 @@
   "max_year": 1945,
   "style": "poor rustic",
   "triangles": 60000,
-  "bytes": 1669896,
+  "bytes": 1622328,
   "source": "wooden_candlestick"
  },
  {
@@ -1271,7 +1271,7 @@
   "max_year": 1945,
   "style": "rich",
   "triangles": 41936,
-  "bytes": 4223688,
+  "bytes": 3695532,
   "source": "brass_candleholders"
  },
  {
@@ -1288,7 +1288,7 @@
   "max_year": 2001,
   "style": "rich home",
   "triangles": 25721,
-  "bytes": 879632,
+  "bytes": 838036,
   "source": "mantel_clock_01"
  },
  {
@@ -1305,7 +1305,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 8985,
-  "bytes": 507168,
+  "bytes": 474040,
   "source": "alarm_clock_01"
  },
  {
@@ -1322,7 +1322,7 @@
   "max_year": 2001,
   "style": "rich home",
   "triangles": 8582,
-  "bytes": 1250452,
+  "bytes": 1101640,
   "source": "vintage_grandfather_clock_01"
  },
  {
@@ -1339,7 +1339,7 @@
   "max_year": 2001,
   "style": "home office",
   "triangles": 3658,
-  "bytes": 289344,
+  "bytes": 244016,
   "source": "wall_clock"
  },
  {
@@ -1356,7 +1356,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 938,
-  "bytes": 722316,
+  "bytes": 585616,
   "source": "fancy_picture_frame_01"
  },
  {
@@ -1373,7 +1373,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 35102,
-  "bytes": 1708904,
+  "bytes": 1510912,
   "source": "fancy_picture_frame_02"
  },
  {
@@ -1390,7 +1390,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 2586,
-  "bytes": 441480,
+  "bytes": 372012,
   "source": "hanging_picture_frame_01"
  },
  {
@@ -1407,7 +1407,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 3678,
-  "bytes": 816308,
+  "bytes": 696552,
   "source": "hanging_picture_frame_02"
  },
  {
@@ -1424,7 +1424,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 24348,
-  "bytes": 861996,
+  "bytes": 816236,
   "source": "hanging_picture_frame_03"
  },
  {
@@ -1441,7 +1441,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 1634,
-  "bytes": 192284,
+  "bytes": 172360,
   "source": "standing_picture_frame_01"
  },
  {
@@ -1458,7 +1458,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 14246,
-  "bytes": 676484,
+  "bytes": 595288,
   "source": "ornate_mirror_01"
  },
  {
@@ -1475,7 +1475,7 @@
   "max_year": 2001,
   "style": "bar",
   "triangles": 6800,
-  "bytes": 451052,
+  "bytes": 393556,
   "source": "dartboard"
  },
  {
@@ -1492,7 +1492,7 @@
   "max_year": 2001,
   "style": "home rich",
   "triangles": 59999,
-  "bytes": 2600500,
+  "bytes": 2458900,
   "source": "chess_set"
  },
  {
@@ -1509,7 +1509,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 21440,
-  "bytes": 828132,
+  "bytes": 752244,
   "source": "brass_vase_01"
  },
  {
@@ -1526,7 +1526,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 10296,
-  "bytes": 336244,
+  "bytes": 320328,
   "source": "ceramic_vase_01"
  },
  {
@@ -1543,7 +1543,7 @@
   "max_year": 2001,
   "style": "rich",
   "triangles": 9408,
-  "bytes": 319720,
+  "bytes": 303424,
   "source": "antique_ceramic_vase_01"
  },
  {
@@ -1560,7 +1560,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 40296,
-  "bytes": 1320052,
+  "bytes": 1226412,
   "source": "tea_set_01"
  },
  {
@@ -1577,7 +1577,7 @@
   "max_year": 2001,
   "style": "bar",
   "triangles": 28848,
-  "bytes": 1912688,
+  "bytes": 1734044,
   "source": "wine_bottles_01"
  },
  {
@@ -1594,7 +1594,7 @@
   "max_year": 2001,
   "style": "rich bar",
   "triangles": 9600,
-  "bytes": 731804,
+  "bytes": 667836,
   "source": "brass_goblets"
  },
  {
@@ -1611,7 +1611,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 5770,
-  "bytes": 198720,
+  "bytes": 178244,
   "source": "jug_01"
  },
  {
@@ -1628,7 +1628,7 @@
   "max_year": 2001,
   "style": "home office",
   "triangles": 59999,
-  "bytes": 2631072,
+  "bytes": 2593712,
   "source": "book_encyclopedia_set_01"
  },
  {
@@ -1636,16 +1636,16 @@
   "file": "potted_plant_01.glb",
   "category": "plant",
   "size": [
-   0.573,
-   1.334,
-   0.668
+   0.587,
+   1.35,
+   0.634
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "home",
   "triangles": 60000,
-  "bytes": 3408848,
+  "bytes": 3536356,
   "source": "potted_plant_01"
  },
  {
@@ -1662,7 +1662,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 59999,
-  "bytes": 3031484,
+  "bytes": 2872040,
   "source": "potted_plant_02"
  },
  {
@@ -1679,7 +1679,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 8929,
-  "bytes": 477632,
+  "bytes": 451080,
   "source": "potted_plant_04"
  },
  {
@@ -1696,12 +1696,12 @@
   "max_year": 2001,
   "style": "street home",
   "triangles": 8094,
-  "bytes": 935692,
+  "bytes": 798264,
   "source": "planter_box_01"
  },
  {
-  "id": "vintage_suitcase_01",
-  "file": "vintage_suitcase_01.glb",
+  "id": "vintage_suitcase",
+  "file": "vintage_suitcase.glb",
   "category": "box",
   "size": [
    0.694,
@@ -1713,24 +1713,7 @@
   "max_year": 1980,
   "style": "home",
   "triangles": 8237,
-  "bytes": 827628,
-  "source": "vintage_suitcase"
- },
- {
-  "id": "vintage_suitcase_02",
-  "file": "vintage_suitcase_02.glb",
-  "category": "box",
-  "size": [
-   0.694,
-   0.568,
-   0.239
-  ],
-  "wall_mount": false,
-  "min_year": 1920,
-  "max_year": 1980,
-  "style": "home",
-  "triangles": 8237,
-  "bytes": 843244,
+  "bytes": 707848,
   "source": "vintage_suitcase"
  },
  {
@@ -1747,7 +1730,7 @@
   "max_year": 1985,
   "style": "shop bar",
   "triangles": 9927,
-  "bytes": 1015348,
+  "bytes": 839796,
   "source": "CashRegister_01"
  },
  {
@@ -1764,7 +1747,7 @@
   "max_year": 1980,
   "style": "home",
   "triangles": 1918,
-  "bytes": 502116,
+  "bytes": 371028,
   "source": "Television_01"
  },
  {
@@ -1781,7 +1764,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 2310,
-  "bytes": 220932,
+  "bytes": 191060,
   "source": "television_02"
  },
  {
@@ -1798,7 +1781,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 13914,
-  "bytes": 1102408,
+  "bytes": 980316,
   "source": "electric_stove"
  },
  {
@@ -1806,16 +1789,16 @@
   "file": "vintage_microwave.glb",
   "category": "microwave",
   "size": [
-   1.074,
-   0.526,
-   0.746
+   0.537,
+   0.263,
+   0.373
   ],
   "wall_mount": false,
   "min_year": 1975,
   "max_year": 2001,
   "style": "home",
   "triangles": 8120,
-  "bytes": 785924,
+  "bytes": 377272,
   "source": "vintage_microwave"
  },
  {
@@ -1832,7 +1815,7 @@
   "max_year": 2001,
   "style": "street home",
   "triangles": 10168,
-  "bytes": 1260016,
+  "bytes": 1041700,
   "source": "boombox"
  },
  {
@@ -1849,7 +1832,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 4830,
-  "bytes": 483308,
+  "bytes": 426200,
   "source": "cassette_player"
  },
  {
@@ -1866,7 +1849,7 @@
   "max_year": 1975,
   "style": "office military",
   "triangles": 42350,
-  "bytes": 2249972,
+  "bytes": 2145252,
   "source": "vintage_radio_transceiver"
  },
  {
@@ -1883,7 +1866,7 @@
   "max_year": 2001,
   "style": "home",
   "triangles": 14838,
-  "bytes": 684180,
+  "bytes": 638612,
   "source": "vintage_electric_kettle"
  },
  {
@@ -1900,7 +1883,7 @@
   "max_year": 2001,
   "style": "home office",
   "triangles": 15864,
-  "bytes": 757036,
+  "bytes": 701236,
   "source": "vintage_telephone_wall_clock"
  },
  {
@@ -1917,7 +1900,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 43158,
-  "bytes": 1628280,
+  "bytes": 1518176,
   "source": "fire_hydrant"
  },
  {
@@ -1934,7 +1917,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 43158,
-  "bytes": 1678188,
+  "bytes": 1567672,
   "source": "fire_hydrant"
  },
  {
@@ -1951,7 +1934,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 6428,
-  "bytes": 903696,
+  "bytes": 783252,
   "source": "metal_trash_can"
  },
  {
@@ -1968,7 +1951,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 7532,
-  "bytes": 1140400,
+  "bytes": 1037876,
   "source": "metal_trash_can"
  },
  {
@@ -1985,24 +1968,126 @@
   "max_year": 2001,
   "style": "street poor",
   "triangles": 4482,
-  "bytes": 305436,
+  "bytes": 265324,
   "source": "trashbag"
  },
  {
-  "id": "modular_fire_escape",
-  "file": "modular_fire_escape.glb",
+  "id": "fire_escape_platform_bottom",
+  "file": "fire_escape_platform_bottom.glb",
   "category": "fire_escape",
   "size": [
-   6.661,
-   9.757,
-   1.421
+   4.793,
+   0.772,
+   1.364
   ],
   "wall_mount": true,
   "min_year": 1900,
   "max_year": 2001,
   "style": "street",
-  "triangles": 11322,
-  "bytes": 1862748,
+  "triangles": 956,
+  "bytes": 682740,
+  "source": "modular_fire_escape"
+ },
+ {
+  "id": "fire_escape_railing_bottom",
+  "file": "fire_escape_railing_bottom.glb",
+  "category": "fire_escape",
+  "size": [
+   4.711,
+   0.984,
+   1.408
+  ],
+  "wall_mount": true,
+  "min_year": 1900,
+  "max_year": 2001,
+  "style": "street",
+  "triangles": 1036,
+  "bytes": 536188,
+  "source": "modular_fire_escape"
+ },
+ {
+  "id": "fire_escape_stairs",
+  "file": "fire_escape_stairs.glb",
+  "category": "fire_escape",
+  "size": [
+   2.995,
+   4.006,
+   1.372
+  ],
+  "wall_mount": true,
+  "min_year": 1900,
+  "max_year": 2001,
+  "style": "street",
+  "triangles": 5810,
+  "bytes": 735472,
+  "source": "modular_fire_escape"
+ },
+ {
+  "id": "fire_escape_platform_middle",
+  "file": "fire_escape_platform_middle.glb",
+  "category": "fire_escape",
+  "size": [
+   4.793,
+   0.772,
+   1.364
+  ],
+  "wall_mount": true,
+  "min_year": 1900,
+  "max_year": 2001,
+  "style": "street",
+  "triangles": 1244,
+  "bytes": 699380,
+  "source": "modular_fire_escape"
+ },
+ {
+  "id": "fire_escape_railing_middle",
+  "file": "fire_escape_railing_middle.glb",
+  "category": "fire_escape",
+  "size": [
+   4.711,
+   0.984,
+   1.387
+  ],
+  "wall_mount": true,
+  "min_year": 1900,
+  "max_year": 2001,
+  "style": "street",
+  "triangles": 932,
+  "bytes": 531976,
+  "source": "modular_fire_escape"
+ },
+ {
+  "id": "fire_escape_platform_railing",
+  "file": "fire_escape_platform_railing.glb",
+  "category": "fire_escape",
+  "size": [
+   2.234,
+   0.986,
+   0.73
+  ],
+  "wall_mount": true,
+  "min_year": 1900,
+  "max_year": 2001,
+  "style": "street",
+  "triangles": 712,
+  "bytes": 515424,
+  "source": "modular_fire_escape"
+ },
+ {
+  "id": "fire_escape_ladder_bottom",
+  "file": "fire_escape_ladder_bottom.glb",
+  "category": "fire_escape",
+  "size": [
+   0.775,
+   6.466,
+   0.064
+  ],
+  "wall_mount": true,
+  "min_year": 1900,
+  "max_year": 2001,
+  "style": "street",
+  "triangles": 632,
+  "bytes": 522912,
   "source": "modular_fire_escape"
  },
  {
@@ -2019,7 +2104,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 6301,
-  "bytes": 959260,
+  "bytes": 851132,
   "source": "water_manhole_cover"
  },
  {
@@ -2036,7 +2121,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 4404,
-  "bytes": 666124,
+  "bytes": 541128,
   "source": "utility_box_01"
  },
  {
@@ -2053,7 +2138,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 6268,
-  "bytes": 736392,
+  "bytes": 608548,
   "source": "utility_box_02"
  },
  {
@@ -2070,7 +2155,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 12592,
-  "bytes": 1003604,
+  "bytes": 870356,
   "source": "covered_car"
  },
  {
@@ -2087,7 +2172,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 60000,
-  "bytes": 2135568,
+  "bytes": 2054912,
   "source": "concrete_road_barrier"
  },
  {
@@ -2104,7 +2189,7 @@
   "max_year": 2001,
   "style": "rustic bar",
   "triangles": 11184,
-  "bytes": 1050000,
+  "bytes": 886848,
   "source": "wooden_barrels_01"
  },
  {
@@ -2121,7 +2206,7 @@
   "max_year": 2001,
   "style": "rustic bar",
   "triangles": 11278,
-  "bytes": 1064924,
+  "bytes": 902872,
   "source": "wooden_barrels_01"
  },
  {
@@ -2138,7 +2223,7 @@
   "max_year": 2001,
   "style": "rustic bar",
   "triangles": 10820,
-  "bytes": 938328,
+  "bytes": 824192,
   "source": "wine_barrel_01"
  },
  {
@@ -2155,7 +2240,7 @@
   "max_year": 2001,
   "style": "rustic",
   "triangles": 2682,
-  "bytes": 680020,
+  "bytes": 513848,
   "source": "Barrel_01"
  },
  {
@@ -2172,7 +2257,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 2688,
-  "bytes": 408092,
+  "bytes": 302856,
   "source": "Barrel_02"
  },
  {
@@ -2189,7 +2274,7 @@
   "max_year": 2001,
   "style": "industrial",
   "triangles": 1473,
-  "bytes": 560160,
+  "bytes": 384128,
   "source": "barrel_03"
  },
  {
@@ -2206,7 +2291,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 6576,
-  "bytes": 810352,
+  "bytes": 671308,
   "source": "wooden_crate_01"
  },
  {
@@ -2223,7 +2308,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 5176,
-  "bytes": 790392,
+  "bytes": 641392,
   "source": "wooden_crate_02"
  },
  {
@@ -2240,7 +2325,7 @@
   "max_year": 2001,
   "style": "military",
   "triangles": 10476,
-  "bytes": 977916,
+  "bytes": 866904,
   "source": "old_military_crate"
  },
  {
@@ -2257,7 +2342,7 @@
   "max_year": 2001,
   "style": "military",
   "triangles": 22986,
-  "bytes": 1438728,
+  "bytes": 1291516,
   "source": "wooden_military_crate"
  },
  {
@@ -2274,7 +2359,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 16952,
-  "bytes": 575424,
+  "bytes": 556900,
   "source": "cardboard_box_01"
  },
  {
@@ -2282,16 +2367,16 @@
   "file": "street_rat.glb",
   "category": "rat",
   "size": [
-   0.032,
-   0.034,
-   0.148
+   0.048,
+   0.051,
+   0.223
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "street",
   "triangles": 57216,
-  "bytes": 1572276,
+  "bytes": 1512952,
   "source": "street_rat"
  },
  {
@@ -2308,7 +2393,7 @@
   "max_year": 2001,
   "style": "street",
   "triangles": 12500,
-  "bytes": 2008088,
+  "bytes": 1687920,
   "source": "modular_street_seating"
  },
  {
@@ -2325,7 +2410,7 @@
   "max_year": 2001,
   "style": "street rustic",
   "triangles": 630,
-  "bytes": 657784,
+  "bytes": 567844,
   "source": "painted_wooden_bench"
  },
  {
@@ -2342,7 +2427,7 @@
   "max_year": 2001,
   "style": "weapon",
   "triangles": 7556,
-  "bytes": 556904,
+  "bytes": 505024,
   "source": "service_pistol"
  },
  {
@@ -2359,7 +2444,7 @@
   "max_year": 2001,
   "style": "weapon",
   "triangles": 19985,
-  "bytes": 2895448,
+  "bytes": 2534504,
   "source": "bolt_action_rifle_7_62"
  },
  {
@@ -2375,8 +2460,8 @@
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 100000,
-  "bytes": 9426900,
+  "triangles": 60000,
+  "bytes": 7390080,
   "source": "jacaranda_tree"
  },
  {
@@ -2386,14 +2471,14 @@
   "size": [
    4.712,
    4.996,
-   4.757
+   4.732
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 100000,
-  "bytes": 8373708,
+  "triangles": 60000,
+  "bytes": 5930480,
   "source": "island_tree_01"
  },
  {
@@ -2401,16 +2486,16 @@
   "file": "tree_small_02.glb",
   "category": "tree",
   "size": [
-   2.872,
-   4.564,
+   2.69,
+   4.56,
    4.226
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 100000,
-  "bytes": 7222476,
+  "triangles": 59999,
+  "bytes": 5253004,
   "source": "tree_small_02"
  },
  {
@@ -2419,15 +2504,15 @@
   "category": "tree",
   "size": [
    6.292,
-   14.534,
-   6.067
+   14.527,
+   6.037
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 99999,
-  "bytes": 6202900,
+  "triangles": 60000,
+  "bytes": 3971580,
   "source": "fir_tree_01"
  },
  {
@@ -2435,16 +2520,16 @@
   "file": "pine_tree_01.glb",
   "category": "tree",
   "size": [
-   7.089,
-   14.744,
+   7.088,
+   14.56,
    7.426
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 100000,
-  "bytes": 6717024,
+  "triangles": 59999,
+  "bytes": 4527344,
   "source": "pine_tree_01"
  },
  {
@@ -2452,16 +2537,16 @@
   "file": "shrub_01.glb",
   "category": "shrub",
   "size": [
-   2.561,
-   0.434,
-   0.245
+   2.587,
+   0.396,
+   0.218
   ],
   "wall_mount": false,
   "min_year": 1900,
   "max_year": 2001,
   "style": "nature",
-  "triangles": 55418,
-  "bytes": 2119132,
+  "triangles": 60000,
+  "bytes": 3700236,
   "source": "shrub_01"
  },
  {
@@ -2478,7 +2563,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 7590,
-  "bytes": 630196,
+  "bytes": 582948,
   "source": "shrub_02"
  },
  {
@@ -2495,7 +2580,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 9234,
-  "bytes": 679132,
+  "bytes": 631884,
   "source": "shrub_02"
  },
  {
@@ -2512,7 +2597,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 2385,
-  "bytes": 238752,
+  "bytes": 216176,
   "source": "shrub_03"
  },
  {
@@ -2529,7 +2614,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 2134,
-  "bytes": 231644,
+  "bytes": 209068,
   "source": "shrub_03"
  },
  {
@@ -2546,7 +2631,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 27327,
-  "bytes": 892328,
+  "bytes": 872288,
   "source": "shrub_04"
  },
  {
@@ -2563,7 +2648,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 4626,
-  "bytes": 449956,
+  "bytes": 408532,
   "source": "grass_medium_01"
  },
  {
@@ -2580,7 +2665,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 290,
-  "bytes": 279384,
+  "bytes": 237960,
   "source": "grass_medium_01"
  },
  {
@@ -2597,7 +2682,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 833,
-  "bytes": 300664,
+  "bytes": 259240,
   "source": "grass_medium_01"
  },
  {
@@ -2614,7 +2699,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 1760,
-  "bytes": 131276,
+  "bytes": 117376,
   "source": "grass_medium_02"
  },
  {
@@ -2631,7 +2716,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 2489,
-  "bytes": 155556,
+  "bytes": 141656,
   "source": "grass_medium_02"
  },
  {
@@ -2648,7 +2733,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 784,
-  "bytes": 354004,
+  "bytes": 298564,
   "source": "fern_02"
  },
  {
@@ -2665,7 +2750,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 2384,
-  "bytes": 400024,
+  "bytes": 344584,
   "source": "fern_02"
  },
  {
@@ -2682,7 +2767,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 23542,
-  "bytes": 898976,
+  "bytes": 875656,
   "source": "dandelion_01"
  },
  {
@@ -2699,7 +2784,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 3180,
-  "bytes": 261372,
+  "bytes": 238052,
   "source": "dandelion_01"
  },
  {
@@ -2716,7 +2801,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 5896,
-  "bytes": 362840,
+  "bytes": 339920,
   "source": "nettle_plant"
  },
  {
@@ -2733,7 +2818,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 6984,
-  "bytes": 390068,
+  "bytes": 367148,
   "source": "nettle_plant"
  },
  {
@@ -2750,7 +2835,7 @@
   "max_year": 2001,
   "style": "nature",
   "triangles": 41046,
-  "bytes": 2119712,
+  "bytes": 1979848,
   "source": "tree_stump_01"
  }
 ]
