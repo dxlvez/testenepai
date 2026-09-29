@@ -43,6 +43,8 @@ pub struct EnvState {
     pub window_timer: f32,
     pub darkness: f32,
     pub light_level_player: f32,
+    /// 0..1 fade of the red sight (the world darkens, only the threads glow)
+    pub red_fx: f32,
 }
 
 pub fn setup_env(mut c: Commands, mut meshes: ResMut<Assets<Mesh>>, mut mats: ResMut<Assets<StandardMaterial>>) {
@@ -165,8 +167,12 @@ pub fn update_env(
     ),
     mut mats: ResMut<Assets<StandardMaterial>>,
     settings: Res<crate::keys::Settings>,
+    crt: Res<crate::cases::run::CaseRt>,
 ) {
     let dt = time.delta_secs();
+    let want_red = if crt.red_sight { 1.0 } else { 0.0 };
+    env.red_fx += (want_red - env.red_fx) * (dt * 4.0).min(1.0);
+    let rf = env.red_fx;
     let hour = game.hour();
     let (s, sky, amb) = day_curve(hour);
     let rain = game.rain;
@@ -194,9 +200,13 @@ pub fn update_env(
             Color::srgb(0.55, 0.6, 1.0)
         };
         dl.shadows_enabled = settings.shadows;
+        dl.illuminance *= 1.0 - rf * 0.75;
+        if rf > 0.01 {
+            dl.color = dl.color.mix(&Color::srgb(1.0, 0.25, 0.25), rf * 0.8);
+        }
     }
-    ambient.brightness = 180.0 + amb * 600.0 * overcast + flash * 1500.0;
-    ambient.color = Color::srgb(0.5 + redness * 0.4, 0.5 - redness * 0.2, 0.75 - redness * 0.3);
+    ambient.brightness = (180.0 + amb * 600.0 * overcast + flash * 1500.0) * (1.0 - rf * 0.6);
+    ambient.color = Color::srgb(0.5 + redness * 0.4, 0.5 - redness * 0.2, 0.75 - redness * 0.3).mix(&Color::srgb(0.9, 0.15, 0.2), rf * 0.7);
     let sky_c = sky.to_srgba();
     clear.0 = Color::srgb(sky_c.red * overcast + flash * 0.5, sky_c.green * overcast + flash * 0.5, sky_c.blue * overcast + flash * 0.6);
     env.darkness = 1.0 - s * overcast;
@@ -207,7 +217,10 @@ pub fn update_env(
         let end = 70.0 - f * 40.0;
         fog.falloff = FogFalloff::Linear { start, end };
         let c = sky_c;
-        fog.color = Color::srgb(c.red * 0.8 + 0.02 + redness * 0.08, c.green * 0.8 + 0.02, c.blue * 0.9 + 0.04);
+        fog.color = Color::srgb(c.red * 0.8 + 0.02 + redness * 0.08, c.green * 0.8 + 0.02, c.blue * 0.9 + 0.04).mix(&Color::srgb(0.12, 0.0, 0.02), rf);
+        if rf > 0.01 {
+            fog.falloff = FogFalloff::Linear { start: start * (1.0 - rf * 0.6), end: end * (1.0 - rf * 0.45) };
+        }
     }
 
     let Some(map) = map else { return };
